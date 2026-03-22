@@ -1,9 +1,9 @@
 package com.example.rewarded_questions_app.service;
 
-import com.example.rewarded_questions_app.dto.AuthResponseDTO;
+import com.example.rewarded_questions_app.dto.response.AuthResponseDTO;
 import com.example.rewarded_questions_app.dto.LoginRequest;
 import com.example.rewarded_questions_app.dto.RegisterRequest;
-import com.example.rewarded_questions_app.dto.UserDTO;
+import com.example.rewarded_questions_app.dto.response.UserDTO;
 import com.example.rewarded_questions_app.exceptions.EntityAlreadyExistsException;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
 import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
