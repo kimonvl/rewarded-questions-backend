@@ -1,4 +1,4 @@
-package com.example.rewarded_questions_app.dto;
+package com.example.rewarded_questions_app.dto.response;
 
 import java.util.UUID;
 

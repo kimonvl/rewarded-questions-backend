@@ -1,0 +1,14 @@
+package com.example.rewarded_questions_app.dto.response;
+
+import java.util.List;
+import java.util.UUID;
+
+public record QuestionDTO(
+        UUID uuid,
+        String text,
+        Boolean isFreeText,
+        Long selectMin,
+        Long selectMax,
+        List<PossibleChoiceDTO> possibleChoices
+) {
+}
