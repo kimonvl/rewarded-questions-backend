@@ -38,6 +38,12 @@ public class Questionnaire extends AbstractEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(nullable = false)
+    private String title;
+
+    @Column(length = 200)
+    private String description;
+
     @Getter(AccessLevel.PROTECTED)
     @Setter(AccessLevel.PRIVATE)
     @OneToMany(mappedBy = "questionnaire", fetch = FetchType.LAZY)
