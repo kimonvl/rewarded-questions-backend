@@ -37,5 +37,6 @@ public class PossibleChoice extends AbstractEntity {
     @Column(nullable = false)
     private String text;
 
+    @Column(name = "choice_order")
     private Long order;
 }
