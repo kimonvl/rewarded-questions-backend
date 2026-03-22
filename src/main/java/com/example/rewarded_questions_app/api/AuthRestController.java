@@ -1,6 +1,8 @@
 package com.example.rewarded_questions_app.api;
 
 import com.example.rewarded_questions_app.dto.*;
+import com.example.rewarded_questions_app.dto.response.AuthResponseDTO;
+import com.example.rewarded_questions_app.dto.response.UserDTO;
 import com.example.rewarded_questions_app.exceptions.*;
 
 import com.example.rewarded_questions_app.service.AuthService;
