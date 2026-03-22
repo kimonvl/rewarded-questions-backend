@@ -1,4 +1,4 @@
-package com.example.rewarded_questions_app.model;
+package com.example.rewarded_questions_app.model.user;
 
 import jakarta.persistence.*;
 import lombok.*;

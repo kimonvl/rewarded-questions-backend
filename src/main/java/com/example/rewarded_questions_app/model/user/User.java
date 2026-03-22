@@ -1,10 +1,8 @@
-package com.example.rewarded_questions_app.model;
+package com.example.rewarded_questions_app.model.user;
 
+import com.example.rewarded_questions_app.model.AbstractEntity;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -12,10 +10,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.*;
 
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "users")
 public class User extends AbstractEntity implements UserDetails {
 
@@ -24,7 +22,7 @@ public class User extends AbstractEntity implements UserDetails {
     private Long id;
 
     @Column(unique = true, nullable = false, updatable = false, columnDefinition = "UUID")
-    private UUID uuid;
+    private UUID uuid = UUID.randomUUID();
 
     @Column(unique = true, nullable = false)
     private String username;

@@ -10,8 +10,8 @@ import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentExcept
 import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
 import com.example.rewarded_questions_app.exceptions.InternalErrorException;
 import com.example.rewarded_questions_app.mapper.UserMapper;
-import com.example.rewarded_questions_app.model.Role;
-import com.example.rewarded_questions_app.model.User;
+import com.example.rewarded_questions_app.model.user.Role;
+import com.example.rewarded_questions_app.model.user.User;
 import com.example.rewarded_questions_app.repository.RoleRepository;
 import com.example.rewarded_questions_app.repository.UserRepository;
 
