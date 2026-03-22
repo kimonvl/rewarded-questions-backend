@@ -46,7 +46,8 @@ public class Questionnaire extends AbstractEntity {
 
     @Getter(AccessLevel.PROTECTED)
     @Setter(AccessLevel.PRIVATE)
-    @OneToMany(mappedBy = "questionnaire", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "questionnaire", fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Question> questions = new HashSet<>();
 
     public Set<Question> getAllQuestions() {

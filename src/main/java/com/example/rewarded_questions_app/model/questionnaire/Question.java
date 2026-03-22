@@ -40,7 +40,7 @@ public class Question extends AbstractEntity {
     @Column(nullable = false)
     private String text;
 
-    private boolean isFreeText;
+    private Boolean isFreeText;
 
     // TODO: check possible interaction with flyway
     @Column(columnDefinition = "BIGINT DEFAULT 1")
@@ -51,7 +51,8 @@ public class Question extends AbstractEntity {
 
     @Getter(AccessLevel.PROTECTED)
     @Setter(AccessLevel.PRIVATE)
-    @OneToMany(mappedBy = "question", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "question", fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<PossibleChoice> possibleChoices = new HashSet<>();
 
     public Set<PossibleChoice> getAllPossibleChoices() {
