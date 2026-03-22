@@ -1,7 +1,7 @@
 package com.example.rewarded_questions_app.mapper;
 
 import com.example.rewarded_questions_app.dto.RegisterRequest;
-import com.example.rewarded_questions_app.dto.UserDTO;
+import com.example.rewarded_questions_app.dto.response.UserDTO;
 import com.example.rewarded_questions_app.model.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

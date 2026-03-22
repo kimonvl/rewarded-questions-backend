@@ -1,6 +1,6 @@
 package com.example.rewarded_questions_app.security;
 
-import com.example.rewarded_questions_app.dto.ErrorResponseDTO;
+import com.example.rewarded_questions_app.dto.response.ErrorResponseDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

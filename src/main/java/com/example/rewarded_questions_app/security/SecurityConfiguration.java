@@ -1,5 +1,6 @@
 package com.example.rewarded_questions_app.security;
 
+import com.example.rewarded_questions_app.model.user.CapabilityCodes;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,8 +50,9 @@ public class SecurityConfiguration {
                         httpSecurityCorsConfigurer.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req -> req
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/v1/questionnaires").hasAuthority(CapabilityCodes.CREATE_QUESTIONNAIRE.name())
 //                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/authenticate").permitAll()
 //                        .requestMatchers(HttpMethod.POST, "/api/v1/teachers").permitAll()
 //                        .requestMatchers(HttpMethod.POST, "/api/v1/teachers/{uuid}/*").permitAll()
