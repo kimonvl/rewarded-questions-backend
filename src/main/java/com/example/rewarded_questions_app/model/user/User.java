@@ -25,7 +25,7 @@ public class User extends AbstractEntity implements UserDetails {
     private UUID uuid = UUID.randomUUID();
 
     @Column(unique = true, nullable = false)
-    private String username;
+    private String email;
 
     @Column(nullable = false)       // Hash, BCrypt
     private String password;
@@ -38,11 +38,12 @@ public class User extends AbstractEntity implements UserDetails {
     private Role role;
 
 
-    public User(String username, String password) {
-        this.username = username;
+    public User(String email, String password) {
+        this.email = email;
         this.password = password;
     }
 
+    @NonNull
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         Set<GrantedAuthority> grantedAuthorities =  new HashSet<>();
@@ -50,6 +51,12 @@ public class User extends AbstractEntity implements UserDetails {
         role.getCapabilities()
                 .forEach(capability -> grantedAuthorities.add(new SimpleGrantedAuthority(capability.getName())));
         return grantedAuthorities;
+    }
+
+    @NonNull
+    @Override
+    public String getUsername() {
+        return this.email;
     }
 
     @Override
@@ -82,7 +89,7 @@ public class User extends AbstractEntity implements UserDetails {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(username);
+        return Objects.hashCode(email);
     }
 
     @PrePersist
