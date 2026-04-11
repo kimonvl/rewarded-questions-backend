@@ -17,12 +17,10 @@ import java.util.UUID;
 @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @Table(
-        name = "questionnaires"
-//        indexes = {
-//                @Index(name = "idx_properties_owner", columnList = "owner_id"),
-//                @Index(name = "idx_properties_status", columnList = "status"),
-//                @Index(name = "idx_properties_type", columnList = "type")
-//        }
+        name = "questionnaires",
+        indexes = {
+                @Index(name = "idx_questionnaires_business", columnList = "business"),
+        }
 )
 public class Questionnaire extends AbstractEntity {
 
@@ -43,6 +41,9 @@ public class Questionnaire extends AbstractEntity {
 
     @Column(length = 200)
     private String description;
+
+    @Column(length = 200)
+    private String business;
 
     @Getter(AccessLevel.PROTECTED)
     @Setter(AccessLevel.PRIVATE)
