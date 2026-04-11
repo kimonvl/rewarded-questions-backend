@@ -16,12 +16,10 @@ import java.util.UUID;
 @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @Table(
-        name = "questions"
-//        indexes = {
-//                @Index(name = "idx_properties_owner", columnList = "owner_id"),
-//                @Index(name = "idx_properties_status", columnList = "status"),
-//                @Index(name = "idx_properties_type", columnList = "type")
-//        }
+        name = "questions",
+        indexes = {
+                @Index(name = "idx_questions_questionnaires", columnList = "questionnaire_id"),
+        }
 )
 public class Question extends AbstractEntity {
 
