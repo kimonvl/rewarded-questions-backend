@@ -42,9 +42,6 @@ public class Questionnaire extends AbstractEntity {
     @Column(length = 200)
     private String description;
 
-    @Column(length = 200)
-    private String business;
-
     @Getter(AccessLevel.PROTECTED)
     @Setter(AccessLevel.PRIVATE)
     @OneToMany(mappedBy = "questionnaire", fetch = FetchType.LAZY,
