@@ -13,12 +13,10 @@ import java.util.UUID;
 @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @Table(
-        name = "possible_choices"
-//        indexes = {
-//                @Index(name = "idx_properties_owner", columnList = "owner_id"),
-//                @Index(name = "idx_properties_status", columnList = "status"),
-//                @Index(name = "idx_properties_type", columnList = "type")
-//        }
+        name = "possible_choices",
+        indexes = {
+                @Index(name = "idx_possible_choices_questions", columnList = "question_id")
+        }
 )
 public class PossibleChoice extends AbstractEntity {
 
