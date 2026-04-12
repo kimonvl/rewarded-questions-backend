@@ -26,10 +26,10 @@ public class RegisterValidator implements Validator {
     @Override
     public void validate(@NonNull Object target, @NonNull Errors errors) {
         RegisterRequest registerRequest = (RegisterRequest) target;
-        if (!errors.hasFieldErrors("username")) {
-            if (authService.isUserExists(registerRequest.username())) {
-                errors.rejectValue("username", "RegisterUsernameExists");
-                log.warn("Registration failed. User with username={} already exists", registerRequest.username());
+        if (!errors.hasFieldErrors("email")) {
+            if (authService.isUserExists(registerRequest.email())) {
+                errors.rejectValue("email", "RegisterUsernameExists");
+                log.warn("Registration failed. User with email={} already exists", registerRequest.email());
             }
         }
     }
