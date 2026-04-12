@@ -11,7 +11,7 @@ import java.util.List;
 public record CreateQuestionRequest(
 
         @NotBlank
-        @Size(min = 1, max = 500)
+        @Size(min = 5, max = 500)
         String text,
 
         @NotNull
