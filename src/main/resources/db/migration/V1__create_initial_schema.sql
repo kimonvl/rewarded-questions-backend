@@ -48,8 +48,8 @@ CREATE TABLE questionnaires (
         FOREIGN KEY (user_id) REFERENCES users (id)
 );
 
-CREATE INDEX idx_questionnaires_business
-    ON questionnaires (business);
+CREATE INDEX idx_questionnaires_user
+    ON questionnaires (user_id);
 
 CREATE TABLE questions (
     id BIGSERIAL PRIMARY KEY,
