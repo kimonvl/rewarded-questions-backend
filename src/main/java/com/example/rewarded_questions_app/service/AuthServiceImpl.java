@@ -41,9 +41,9 @@ public class AuthServiceImpl implements AuthService {
     @Transactional(rollbackFor = {EntityAlreadyExistsException.class, EntityInvalidArgumentException.class})
     public UserDTO register(RegisterRequest req) throws EntityAlreadyExistsException, EntityInvalidArgumentException {
         try {
-            String normalized = req.username().trim().toLowerCase();
-            if (userRepo.existsByUsernameIgnoreCase(normalized)) {
-                throw new EntityAlreadyExistsException("RegisterUser", "User with username=" + normalized + " already exists");
+            String normalized = req.email().trim().toLowerCase();
+            if (userRepo.existsByEmailIgnoreCase(normalized)) {
+                throw new EntityAlreadyExistsException("RegisterUser", "User with email=" + normalized + " already exists");
             }
 
             Role role = roleRepo.findById(req.roleId())
@@ -51,13 +51,13 @@ public class AuthServiceImpl implements AuthService {
             User u = userMapper.registerRequestToUser(req, passwordEncoder.encode(req.password()));
             role.addUser(u);
 
-            log.info("User with username={} registered successfully", normalized);
+            log.info("User with email={} registered successfully", normalized);
             return userMapper.userToUserDTO(userRepo.save(u));
         } catch (EntityAlreadyExistsException e) {
-            log.error("Registration failed for username={}. Username already exists", req.username(), e);
+            log.error("Registration failed for email={}. Username already exists", req.email(), e);
             throw e;
         } catch (EntityInvalidArgumentException e) {
-            log.error("Registration failed for username={}. Message={}", req.username(), e.getMessage(), e);
+            log.error("Registration failed for username={}. Message={}", req.email(), e.getMessage(), e);
             throw e;
         }
     }
@@ -66,42 +66,42 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponseDTO login(LoginRequest request) throws EntityInvalidArgumentException, InternalErrorException, EntityNotFoundException {
         try {
             var auth = authManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.username(), request.password())
+                    new UsernamePasswordAuthenticationToken(request.email(), request.password())
             );
 
             var principal = (User) auth.getPrincipal();
             if (principal == null) {
-                log.error("Login failed for username={}, principal not found", request.username());
-                throw new InternalErrorException("Login", "Login failed for username=" + request.username() + " due to unexpected system error");
+                log.error("Login failed for email={}, principal not found", request.email());
+                throw new InternalErrorException("Login", "Login failed for email=" + request.email() + " due to unexpected system error");
             }
 
             if (!principal.getRole().getId().equals(request.roleId())) {
-                log.error("Login failed due to role mismatch for username={}, role={}", request.username(), request.roleId());
-                throw new EntityInvalidArgumentException("LoginRole", "Login failed. Role mismatch for username=" + request.username());
+                log.error("Login failed due to role mismatch for email={}, role={}", request.email(), request.roleId());
+                throw new EntityInvalidArgumentException("LoginRole", "Login failed. Role mismatch for email=" + request.email());
             }
             String token = jwtService.generateToken(
                     principal.getId(),
-                    principal.getUsername(),
+                    principal.getEmail(),
                     principal.getRole().getName()
             );
 
-            log.info("Login succeeded: user with username={} authenticated", request.username());
+            log.info("Login succeeded: user with email={} authenticated", request.email());
             return new AuthResponseDTO(token, userMapper.userToUserDTO(principal));
         } catch (AuthenticationException e) {
-            log.warn("Login failed: bad credentials username={}", request.username(), e);
+            log.warn("Login failed: bad credentials email={}", request.email(), e);
             throw e;
         } catch (EntityInvalidArgumentException e) {
-            log.warn("Login failed: role mismatch for username={}", request.username(), e);
+            log.warn("Login failed: role mismatch for email={}", request.email(), e);
             throw e;
         } catch (InternalErrorException e) {
-            log.error("Login failed: unexpected system error for username={}", request.username(), e);
+            log.error("Login failed: unexpected system error for email={}", request.email(), e);
             throw e;
         }
     }
 
     @Override
-    public boolean isUserExists(String username) {
-        return userRepo.existsByUsernameIgnoreCase(username);
+    public boolean isUserExists(String email) {
+        return userRepo.existsByEmailIgnoreCase(email);
     }
 
     // For refresh token
