@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record QuestionDTO(
         UUID uuid,
+        UUID questionnaireId,
         String text,
         Boolean isFreeText,
         Long selectMin,
