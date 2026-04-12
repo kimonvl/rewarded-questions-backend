@@ -1,15 +1,12 @@
 package com.example.rewarded_questions_app.api;
 
-import com.example.rewarded_questions_app.dto.CreateQuestionnaireWithQuestionsRequest;
+import com.example.rewarded_questions_app.dto.CreateQuestionnaireRequest;
 import com.example.rewarded_questions_app.dto.GenericResponse;
-import com.example.rewarded_questions_app.dto.RegisterRequest;
 import com.example.rewarded_questions_app.dto.response.QuestionnaireDTO;
-import com.example.rewarded_questions_app.exceptions.EntityAlreadyExistsException;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
 import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
 import com.example.rewarded_questions_app.exceptions.ValidationException;
 import com.example.rewarded_questions_app.service.QuestionnaireService;
-import com.example.rewarded_questions_app.validator.CreateQuestionnaireValidator;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
@@ -29,16 +26,14 @@ import java.security.Principal;
 public class QuestionnaireRestController {
 
     private final QuestionnaireService questionnaireService;
-    private final CreateQuestionnaireValidator createQuestionnaireValidator;
 
     @PostMapping()
-    public ResponseEntity<@NonNull GenericResponse<QuestionnaireDTO>> createQuestionnaireWithQuestions(
-            @Valid @RequestBody CreateQuestionnaireWithQuestionsRequest req,
+    public ResponseEntity<@NonNull GenericResponse<QuestionnaireDTO>> createQuestionnaire(
+            @Valid @RequestBody CreateQuestionnaireRequest req,
             BindingResult bindingResult,
             Principal principal
-    ) throws ValidationException, EntityNotFoundException {
+    ) throws ValidationException, EntityNotFoundException, EntityInvalidArgumentException {
 
-        createQuestionnaireValidator.validate(req, bindingResult);
         if (bindingResult.hasErrors()) {
             bindingResult.getAllErrors().forEach(error -> {
                 System.out.println(error.getCode() + error.getDefaultMessage());
