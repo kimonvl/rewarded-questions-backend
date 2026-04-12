@@ -9,9 +9,9 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class PossibleChoiceMapper {
-    public PossibleChoice createPossibleChoiceReqToPossibleChoice(CreatePossibleChoiceRequest request) {
+    public PossibleChoice createPossibleChoiceReqToPossibleChoice(CreatePossibleChoiceRequest request, Long order) {
         PossibleChoice possibleChoice = new PossibleChoice();
-        possibleChoice.setOrder(request.order());
+        possibleChoice.setOrder(order);
         possibleChoice.setText(request.text());
 
         return possibleChoice;
