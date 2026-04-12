@@ -10,16 +10,17 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class UserMapper {
     public User registerRequestToUser(RegisterRequest req, String encodedPassword) {
-        return new User(
-                req.username(),
-                encodedPassword
-        );
+        User user = new User();
+        user.setEmail(req.email());
+        user.setPassword(encodedPassword);
+        user.setOrganization(req.organization());
+        return user;
     }
 
     public UserDTO userToUserDTO(User user) {
         return new UserDTO(
                 user.getUuid(),
-                user.getUsername(),
+                user.getEmail(),
                 user.getRole().getId()
         );
     }
