@@ -28,6 +28,7 @@ public class QuestionMapper {
     public QuestionDTO toDto(Question question) {
         return new QuestionDTO(
                 question.getUuid(),
+                question.getQuestionnaire().getUuid(),
                 question.getText(),
                 question.getIsFreeText(),
                 question.getSelectMin(),
