@@ -53,6 +53,7 @@ public class SecurityConfiguration {
                                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/v1/questionnaires").hasAuthority(CapabilityCodes.CREATE_QUESTIONNAIRE.name())
+                                .requestMatchers(HttpMethod.POST, "/api/v1/questionnaires/{id}/questions").hasAuthority(CapabilityCodes.CREATE_QUESTION.name())
 //                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/authenticate").permitAll()
 //                        .requestMatchers(HttpMethod.POST, "/api/v1/teachers").permitAll()
 //                        .requestMatchers(HttpMethod.POST, "/api/v1/teachers/{uuid}/*").permitAll()
