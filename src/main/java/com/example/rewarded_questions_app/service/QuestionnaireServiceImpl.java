@@ -27,7 +27,7 @@ public class QuestionnaireServiceImpl implements QuestionnaireService{
 
     @Override
     @PreAuthorize("hasAuthority('CREATE_QUESTIONNAIRE')")
-    @Transactional(rollbackFor = {EntityNotFoundException.class})
+    @Transactional(rollbackFor = {EntityNotFoundException.class, EntityInvalidArgumentException.class})
     public QuestionnaireDTO createQuestionnaire(CreateQuestionnaireRequest request, String email) throws EntityNotFoundException, EntityInvalidArgumentException {
         try {
             User user = userRepository.findByEmail(email)
