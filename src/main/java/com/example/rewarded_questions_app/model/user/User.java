@@ -37,7 +37,6 @@ public class User extends AbstractEntity implements UserDetails {
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
-
     public User(String email, String password) {
         this.email = email;
         this.password = password;

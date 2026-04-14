@@ -27,6 +27,21 @@ public class Role {
     @Getter(AccessLevel.PROTECTED)
     @OneToMany(mappedBy = "role", fetch = FetchType.LAZY)
     private Set<User> users = new HashSet<>();
+    public Set<User> getAllUsers() {
+        return Set.copyOf(users);
+    }
+    public void addUser(User user) {
+        users.add(user);
+        user.setRole(this);
+    }
+    public void removeUser(User user) {
+        users.remove(user);
+        user.setRole(null);
+    }
+    public void addUsers(Collection<User> users) {
+        users.forEach(this::addUser);
+    }
+
 
     @Setter(AccessLevel.NONE)
     @Getter(AccessLevel.PROTECTED)
@@ -36,37 +51,16 @@ public class Role {
             inverseJoinColumns = @JoinColumn(name = "capability_id")
     )
     private Set<Capability> capabilities = new HashSet<>();
-
     public Set<Capability> getAllCapabilities() {
         return Set.copyOf(capabilities);
     }
-
-    public Set<User> getAllUsers() {
-        return Set.copyOf(users);
-    }
-
     public void addCapability(Capability capability) {
         capabilities.add(capability);
         capability.getRoles().add(this);
     }
-
     public void removeCapability(Capability capability) {
         capabilities.remove(capability);
         capability.getRoles().remove(this);
-    }
-
-    public void addUser(User user) {
-        users.add(user);
-        user.setRole(this);
-    }
-
-    public void removeUser(User user) {
-        users.remove(user);
-        user.setRole(null);
-    }
-
-    public void addUsers(Collection<User> users) {
-        users.forEach(this::addUser);
     }
 
     @Override
