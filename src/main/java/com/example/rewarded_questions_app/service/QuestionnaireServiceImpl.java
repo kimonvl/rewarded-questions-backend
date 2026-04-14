@@ -37,8 +37,7 @@ public class QuestionnaireServiceImpl implements QuestionnaireService{
                 throw new EntityInvalidArgumentException("CreateQuestionnaireTitle", "Questionnaire with title=" + request.title() + " already exists for user with email=" + email);
             }
 
-            Questionnaire questionnaire = questionnaireMapper.createQuestionnaireReqToQuestionnaire(request, user);
-            Questionnaire saved = questionnaireRepository.save(questionnaire);
+            Questionnaire saved = questionnaireRepository.save(questionnaireMapper.createQuestionnaireReqToQuestionnaire(request, user));
             log.info("Questionnaire created successfully for email={}", email);
             return questionnaireMapper.toQuestionnaireDTO(saved);
         } catch (EntityNotFoundException | EntityInvalidArgumentException e) {
