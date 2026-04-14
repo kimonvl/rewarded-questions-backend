@@ -1,9 +1,14 @@
 package com.example.rewarded_questions_app.service;
 
+import com.example.rewarded_questions_app.authentication.JwtService;
+import com.example.rewarded_questions_app.dto.LoginRequest;
 import com.example.rewarded_questions_app.dto.RegisterRequest;
+import com.example.rewarded_questions_app.dto.response.AuthResponseDTO;
 import com.example.rewarded_questions_app.dto.response.UserDTO;
 import com.example.rewarded_questions_app.exceptions.EntityAlreadyExistsException;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
+import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
+import com.example.rewarded_questions_app.exceptions.InternalErrorException;
 import com.example.rewarded_questions_app.model.user.Capability;
 import com.example.rewarded_questions_app.model.user.Role;
 import com.example.rewarded_questions_app.model.user.User;
@@ -14,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +44,9 @@ class AuthServiceImplTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JwtService jwtService;
 
     @Autowired
     private EntityManager entityManager;
@@ -118,5 +127,68 @@ class AuthServiceImplTest {
         assertThat(result.id()).isEqualTo(savedUser.getUuid());
         assertThat(result.email()).isEqualTo(request.email());
         assertThat(result.roleId()).isEqualTo(adminRoleId);
+    }
+
+    @Test
+    void loginSucceeds() throws EntityInvalidArgumentException, InternalErrorException, EntityNotFoundException {
+        LoginRequest request = new LoginRequest(
+                "existing@example.com",
+                "password",
+                adminRoleId
+        );
+
+        AuthResponseDTO result = authService.login(request);
+        User savedUser = userRepository.findByEmail(request.email()).orElseThrow();
+
+        assertThat(result.token()).isNotBlank();
+        assertThat(jwtService.extractSubject(result.token())).isEqualTo(request.email());
+        assertThat(jwtService.getStringClaim(result.token(), "role")).isEqualTo("ADMIN");
+        assertThat(jwtService.isTokenValid(result.token(), savedUser)).isTrue();
+
+        assertThat(result.user().id()).isEqualTo(savedUser.getUuid());
+        assertThat(result.user().email()).isEqualTo(request.email());
+        assertThat(result.user().roleId()).isEqualTo(savedUser.getRole().getId());
+    }
+
+    @Test
+    void loginWithBadPasswordThrowsAuthenticationException() {
+        LoginRequest request = new LoginRequest(
+                "existing@example.com",
+                "wrong-password",
+                adminRoleId
+        );
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(AuthenticationException.class);
+    }
+
+    @Test
+    void loginWithUnknownEmailThrowsAuthenticationException() {
+        LoginRequest request = new LoginRequest(
+                "missing@example.com",
+                "password",
+                adminRoleId
+        );
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(AuthenticationException.class);
+    }
+
+    @Test
+    void loginWithMismatchedRoleThrowsException() {
+        Role teacherRole = new Role();
+        teacherRole.setName("TEACHER");
+
+        entityManager.persist(teacherRole);
+        entityManager.flush();
+
+        LoginRequest request = new LoginRequest(
+                "existing@example.com",
+                "password",
+                teacherRole.getId()
+        );
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(EntityInvalidArgumentException.class);
     }
 }
