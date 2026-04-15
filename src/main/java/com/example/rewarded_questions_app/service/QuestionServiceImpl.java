@@ -70,9 +70,26 @@ public class QuestionServiceImpl implements QuestionService{
     }
 
     private static void validateCreateQuestionRequest(CreateQuestionRequest request) throws EntityInvalidArgumentException {
-        if (request.text().isBlank() || request.text().length() < 5) {
-            throw new EntityInvalidArgumentException("CreateQuestionTextBlank", "Question text cannot be blank");
+        if (request == null) {
+            throw new EntityInvalidArgumentException("CreateQuestionRequestNull", "Create question request cannot be null");
         }
+
+        if (request.text() == null || request.text().isBlank() || request.text().length() < 5) {
+            throw new EntityInvalidArgumentException("CreateQuestionTextBlank", "Question text cannot be blank and must have at least 5 characters");
+        }
+
+        if (request.isFreeText() == null) {
+            throw new EntityInvalidArgumentException("CreateQuestionIsFreeTextNull", "Question type is required");
+        }
+
+        if (request.selectMin() == null || request.selectMax() == null) {
+            throw new EntityInvalidArgumentException("CreateQuestionSelectMinMaxNull", "selectMin and selectMax are required");
+        }
+
+        if (request.possibleChoices() == null) {
+            throw new EntityInvalidArgumentException("CreateQuestionPossibleChoicesNull", "Possible choices are required");
+        }
+
         if (request.isFreeText()) {
             if (!request.possibleChoices().isEmpty()) {
                 throw new EntityInvalidArgumentException("CreateQuestionPossibleChoices", "Free text question cannot have possible choices");
