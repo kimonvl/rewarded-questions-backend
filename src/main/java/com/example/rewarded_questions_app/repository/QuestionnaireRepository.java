@@ -10,4 +10,5 @@ public interface QuestionnaireRepository extends JpaRepository<Questionnaire, Lo
     boolean existsByUserIdAndTitle(Long id, String title);
 
     Optional<Questionnaire> findByUuid(UUID uuid);
+    Optional<Questionnaire> findByUserIdAndTitle(Long userId, String title);
 }
