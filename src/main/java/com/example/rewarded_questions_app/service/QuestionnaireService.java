@@ -6,5 +6,5 @@ import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentExcept
 import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
 
 public interface QuestionnaireService {
-    QuestionnaireDTO createQuestionnaire(CreateQuestionnaireRequest request, String username) throws EntityNotFoundException, EntityInvalidArgumentException;
+    QuestionnaireDTO createQuestionnaire(CreateQuestionnaireRequest request, String email) throws EntityNotFoundException, EntityInvalidArgumentException;
 }
