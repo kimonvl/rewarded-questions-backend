@@ -125,8 +125,8 @@ class AuthServiceImplTest {
         assertThat(passwordEncoder.matches(request.password(), savedUser.getPassword())).isTrue();
 
         assertThat(result.id()).isEqualTo(savedUser.getUuid());
-        assertThat(result.email()).isEqualTo(request.email());
-        assertThat(result.roleId()).isEqualTo(adminRoleId);
+        assertThat(result.email()).isEqualTo(savedUser.getEmail());
+        assertThat(result.roleId()).isEqualTo(savedUser.getRole().getId());
     }
 
     @Test
