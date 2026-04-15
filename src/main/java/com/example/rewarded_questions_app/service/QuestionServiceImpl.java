@@ -70,6 +70,9 @@ public class QuestionServiceImpl implements QuestionService{
     }
 
     private static void validateCreateQuestionRequest(CreateQuestionRequest request) throws EntityInvalidArgumentException {
+        if (request.text().isBlank() || request.text().length() < 5) {
+            throw new EntityInvalidArgumentException("CreateQuestionTextBlank", "Question text cannot be blank");
+        }
         if (request.isFreeText()) {
             if (!request.possibleChoices().isEmpty()) {
                 throw new EntityInvalidArgumentException("CreateQuestionPossibleChoices", "Free text question cannot have possible choices");
@@ -87,8 +90,12 @@ public class QuestionServiceImpl implements QuestionService{
                 throw new EntityInvalidArgumentException("CreateQuestionSelectMaxSize", "Non free text question must have selectMax less than or equal to the number of possible choices");
             }
 
+            // Check for duplicate possible choice texts within the same question
             HashSet<String>  choices = new HashSet<>();
             for (CreatePossibleChoiceRequest choice : request.possibleChoices()) {
+                if (choice.text().isBlank()) {
+                    throw new EntityInvalidArgumentException("CreateQuestionPossibleChoiceTextBlank", "Possible choice text cannot be blank");
+                }
                 if (choices.contains(choice.text())) {
                     throw new EntityInvalidArgumentException("CreateQuestionPossibleChoicesUnique", "Duplicate possible choice text: " + choice.text());
                 } else {
