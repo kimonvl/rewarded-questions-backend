@@ -38,6 +38,8 @@ public class QuestionServiceImpl implements QuestionService{
     @Transactional(rollbackFor = {EntityNotFoundException.class, EntityInvalidArgumentException.class})
     public QuestionDTO createQuestion(CreateQuestionRequest request, UUID questionnaireId, String email) throws EntityNotFoundException, EntityInvalidArgumentException {
         try {
+            validateCreateQuestionRequest(request);
+
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new EntityNotFoundException("CreateQuestionUser", "User with email=" + email + " not found"));
 
@@ -51,8 +53,6 @@ public class QuestionServiceImpl implements QuestionService{
             if (questionRepository.existsByTextAndQuestionnaireId(request.text(), questionnaire.getId())) {
                 throw new EntityInvalidArgumentException("CreateQuestionTextUnique", "Question text must be unique within the questionnaire");
             }
-
-            validateCreateQuestionRequest(request);
 
             Question question = questionMapper.createQuestionRequestToQuestion(request);
             questionnaire.addQuestion(question);
