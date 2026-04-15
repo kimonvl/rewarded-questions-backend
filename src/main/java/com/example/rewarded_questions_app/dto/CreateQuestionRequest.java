@@ -18,10 +18,10 @@ public record CreateQuestionRequest(
         Boolean isFreeText,
 
         @NotNull
-        @Min(1)
+        @Min(0)
         Long selectMin,
 
-        @Min(1)
+        @Min(0)
         Long selectMax,
 
         @Valid
