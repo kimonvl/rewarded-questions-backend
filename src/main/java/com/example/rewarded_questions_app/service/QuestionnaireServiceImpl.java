@@ -15,6 +15,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+import java.util.UUID;
+
 @Slf4j
 @RequiredArgsConstructor
 @Service
@@ -44,5 +47,10 @@ public class QuestionnaireServiceImpl implements QuestionnaireService{
             log.warn("Questionnaire creation failed. Message={}", e.getMessage());
             throw e;
         }
+    }
+
+    @Override
+    public Optional<Questionnaire> findQuestionnaireByUuid(UUID uuid) {
+        return questionnaireRepository.findByUuid(uuid);
     }
 }
