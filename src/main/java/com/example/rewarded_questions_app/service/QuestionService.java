@@ -9,4 +9,5 @@ import java.util.UUID;
 
 public interface QuestionService {
     QuestionDTO createQuestion(CreateQuestionRequest request, UUID questionnaireId, String email) throws EntityNotFoundException, EntityInvalidArgumentException;
+    boolean existsByTextAndQuestionnaireId(String text, Long questionnaireId);
 }

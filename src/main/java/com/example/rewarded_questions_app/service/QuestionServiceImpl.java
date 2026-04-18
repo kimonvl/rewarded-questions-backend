@@ -50,7 +50,7 @@ public class QuestionServiceImpl implements QuestionService{
                 throw new EntityInvalidArgumentException("CreateQuestionQuestionnaire", "Questionnaire with id=" + questionnaireId + " does not belong to user with email=" + email);
             }
 
-            if (questionRepository.existsByTextAndQuestionnaireId(request.text(), questionnaire.getId())) {
+            if (existsByTextAndQuestionnaireId(request.text(), questionnaire.getId())) {
                 throw new EntityInvalidArgumentException("CreateQuestionTextUnique", "Question text must be unique within the questionnaire");
             }
 
@@ -67,6 +67,11 @@ public class QuestionServiceImpl implements QuestionService{
             throw e;
         }
 
+    }
+
+    @Override
+    public boolean existsByTextAndQuestionnaireId(String text, Long questionnaireId) {
+        return questionRepository.existsByTextAndQuestionnaireId(text, questionnaireId);
     }
 
     private static void validateCreateQuestionRequest(CreateQuestionRequest request) throws EntityInvalidArgumentException {
