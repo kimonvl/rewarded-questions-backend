@@ -10,6 +10,7 @@ import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
 import com.example.rewarded_questions_app.exceptions.ValidationException;
 import com.example.rewarded_questions_app.service.QuestionService;
 import com.example.rewarded_questions_app.service.QuestionnaireService;
+import com.example.rewarded_questions_app.validator.CreateQuestionRequestValidator;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
@@ -28,6 +29,8 @@ public class QuestionnaireRestController {
 
     private final QuestionnaireService questionnaireService;
     private final QuestionService questionService;
+
+    private final CreateQuestionRequestValidator createQuestionRequestValidator;
 
     @PostMapping()
     public ResponseEntity<@NonNull GenericResponse<QuestionnaireDTO>> createQuestionnaire(
@@ -60,7 +63,7 @@ public class QuestionnaireRestController {
             @PathVariable UUID id
     ) throws ValidationException, EntityInvalidArgumentException, EntityNotFoundException {
 
-        // business validator for create question request
+        createQuestionRequestValidator.validate(req, bindingResult, id);
         if (bindingResult.hasErrors()) {
             bindingResult.getAllErrors().forEach(error -> {
                 System.out.println(error.getCode() + error.getDefaultMessage());
