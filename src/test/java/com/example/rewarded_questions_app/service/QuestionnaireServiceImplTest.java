@@ -1,7 +1,7 @@
 package com.example.rewarded_questions_app.service;
 
-import com.example.rewarded_questions_app.dto.CreateQuestionnaireRequest;
-import com.example.rewarded_questions_app.dto.response.QuestionnaireDTO;
+import com.example.rewarded_questions_app.dto.request.CreateQuestionnaireRequest;
+import com.example.rewarded_questions_app.dto.response.QuestionnaireWithQuestionsDTO;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
 import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
 import com.example.rewarded_questions_app.model.questionnaire.Questionnaire;
@@ -86,7 +86,7 @@ class QuestionnaireServiceImplTest {
     void createQuestionnaireSuccess() throws EntityInvalidArgumentException, EntityNotFoundException {
         CreateQuestionnaireRequest request = new CreateQuestionnaireRequest("New Questionnaire", "Description");
 
-        QuestionnaireDTO result = questionnaireService.createQuestionnaire(request, owner.getEmail());
+        QuestionnaireWithQuestionsDTO result = questionnaireService.createQuestionnaire(request, owner.getEmail());
         Questionnaire saved = questionnaireRepository.findByUserIdAndTitle(owner.getId(), request.title()).orElseThrow();
 
         assertThat(saved.getUser()).isEqualTo(owner);

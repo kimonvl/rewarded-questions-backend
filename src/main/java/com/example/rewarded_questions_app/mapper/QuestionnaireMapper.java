@@ -1,7 +1,7 @@
 package com.example.rewarded_questions_app.mapper;
 
-import com.example.rewarded_questions_app.dto.CreateQuestionnaireRequest;
-import com.example.rewarded_questions_app.dto.response.QuestionnaireDTO;
+import com.example.rewarded_questions_app.dto.request.CreateQuestionnaireRequest;
+import com.example.rewarded_questions_app.dto.response.QuestionnaireWithQuestionsDTO;
 import com.example.rewarded_questions_app.model.questionnaire.Questionnaire;
 import com.example.rewarded_questions_app.model.user.User;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +22,8 @@ public class QuestionnaireMapper {
         return questionnaire;
     }
 
-    public QuestionnaireDTO toQuestionnaireDTO(Questionnaire questionnaire) {
-        return new QuestionnaireDTO(
+    public QuestionnaireWithQuestionsDTO toQuestionnaireDTO(Questionnaire questionnaire) {
+        return new QuestionnaireWithQuestionsDTO(
                 questionnaire.getUuid(),
                 questionnaire.getTitle(),
                 questionnaire.getDescription(),

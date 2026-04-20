@@ -1,7 +1,9 @@
 package com.example.rewarded_questions_app.service;
 
-import com.example.rewarded_questions_app.dto.CreateQuestionnaireRequest;
-import com.example.rewarded_questions_app.dto.response.QuestionnaireDTO;
+import com.example.rewarded_questions_app.dto.request.CreateQuestionnaireRequest;
+import com.example.rewarded_questions_app.dto.request.EditQuestionnaireDetailsRequest;
+import com.example.rewarded_questions_app.dto.response.QuestionnaireDetailsDTO;
+import com.example.rewarded_questions_app.dto.response.QuestionnaireWithQuestionsDTO;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
 import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
 import com.example.rewarded_questions_app.mapper.QuestionnaireMapper;
@@ -31,7 +33,7 @@ public class QuestionnaireServiceImpl implements QuestionnaireService{
     @Override
     @PreAuthorize("hasAuthority('CREATE_QUESTIONNAIRE')")
     @Transactional(rollbackFor = {EntityNotFoundException.class, EntityInvalidArgumentException.class})
-    public QuestionnaireDTO createQuestionnaire(CreateQuestionnaireRequest request, String email) throws EntityNotFoundException, EntityInvalidArgumentException {
+    public QuestionnaireWithQuestionsDTO createQuestionnaire(CreateQuestionnaireRequest request, String email) throws EntityNotFoundException, EntityInvalidArgumentException {
         try {
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new EntityNotFoundException("CreateQuestionnaireUser", "User with email=" + email + " not found"));
@@ -50,7 +52,19 @@ public class QuestionnaireServiceImpl implements QuestionnaireService{
     }
 
     @Override
+    @PreAuthorize("hasAuthority('EDIT_QUESTIONNAIRE')")
+    @Transactional(rollbackFor = {})
+    public QuestionnaireDetailsDTO editQuestionnaireDetails(EditQuestionnaireDetailsRequest request, UUID questionnaireId, String email) {
+        return null;
+    }
+
+    @Override
     public Optional<Questionnaire> findQuestionnaireByUuid(UUID uuid) {
         return questionnaireRepository.findByUuid(uuid);
+    }
+
+    @Override
+    public boolean existsQuestionnaireByTitleAndUserEmail(String title, String email) {
+        return questionnaireRepository.existsByUserEmailAndTitle(email, title);
     }
 }

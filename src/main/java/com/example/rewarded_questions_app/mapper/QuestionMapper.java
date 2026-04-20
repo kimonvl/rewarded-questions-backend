@@ -1,6 +1,6 @@
 package com.example.rewarded_questions_app.mapper;
 
-import com.example.rewarded_questions_app.dto.CreateQuestionRequest;
+import com.example.rewarded_questions_app.dto.request.CreateQuestionRequest;
 import com.example.rewarded_questions_app.dto.response.QuestionDTO;
 import com.example.rewarded_questions_app.model.questionnaire.PossibleChoice;
 import com.example.rewarded_questions_app.model.questionnaire.Question;

@@ -1,7 +1,7 @@
 package com.example.rewarded_questions_app.validator;
 
 
-import com.example.rewarded_questions_app.dto.RegisterRequest;
+import com.example.rewarded_questions_app.dto.request.RegisterRequest;
 import com.example.rewarded_questions_app.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

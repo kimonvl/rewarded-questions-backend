@@ -1,6 +1,6 @@
 package com.example.rewarded_questions_app.mapper;
 
-import com.example.rewarded_questions_app.dto.RegisterRequest;
+import com.example.rewarded_questions_app.dto.request.RegisterRequest;
 import com.example.rewarded_questions_app.dto.response.UserDTO;
 import com.example.rewarded_questions_app.model.user.User;
 import lombok.RequiredArgsConstructor;

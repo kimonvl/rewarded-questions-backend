@@ -1,4 +1,4 @@
-package com.example.rewarded_questions_app.dto;
+package com.example.rewarded_questions_app.dto.request;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
