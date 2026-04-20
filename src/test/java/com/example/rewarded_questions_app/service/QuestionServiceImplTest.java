@@ -2,6 +2,8 @@ package com.example.rewarded_questions_app.service;
 
 import com.example.rewarded_questions_app.dto.CreatePossibleChoiceRequest;
 import com.example.rewarded_questions_app.dto.CreateQuestionRequest;
+import com.example.rewarded_questions_app.dto.ReorderQuestionsRequest;
+import com.example.rewarded_questions_app.dto.response.QuestionDTO;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
 import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
 import com.example.rewarded_questions_app.model.questionnaire.Question;
@@ -20,6 +22,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -46,6 +49,10 @@ class QuestionServiceImplTest {
     private User owner;
     private User otherOwner;
     private Questionnaire questionnaire;
+    private UUID firstQuestionUuid;
+    private UUID secondQuestionUuid;
+    private UUID thirdQuestionUuid;
+    private UUID otherQuestionUuid;
 
     @BeforeEach
     void setUp() {
@@ -74,19 +81,31 @@ class QuestionServiceImplTest {
         questionnaire.setDescription("Sample description");
         questionnaire.setUser(owner);
 
-        Question existingQuestion = new Question();
-        existingQuestion.setText("Existing question?");
-        existingQuestion.setIsFreeText(true);
-        existingQuestion.setSelectMin(0L);
-        existingQuestion.setSelectMax(0L);
-        existingQuestion.setOrder(0L);
-        questionnaire.addQuestion(existingQuestion);
+        Question firstQuestion = createFreeTextQuestion("Existing question?", 0L);
+        Question secondQuestion = createFreeTextQuestion("Second question?", 1L);
+        Question thirdQuestion = createFreeTextQuestion("Third question?", 2L);
+        questionnaire.addQuestion(firstQuestion);
+        questionnaire.addQuestion(secondQuestion);
+        questionnaire.addQuestion(thirdQuestion);
+        firstQuestionUuid = firstQuestion.getUuid();
+        secondQuestionUuid = secondQuestion.getUuid();
+        thirdQuestionUuid = thirdQuestion.getUuid();
+
+        Questionnaire otherQuestionnaire = new Questionnaire();
+        otherQuestionnaire.setTitle("Other Questionnaire");
+        otherQuestionnaire.setDescription("Other description");
+        otherQuestionnaire.setUser(owner);
+
+        Question otherQuestion = createFreeTextQuestion("Other questionnaire question?", 0L);
+        otherQuestionnaire.addQuestion(otherQuestion);
+        otherQuestionUuid = otherQuestion.getUuid();
 
         entityManager.persist(createQuestion);
         entityManager.persist(adminRole);
         entityManager.persist(owner);
         entityManager.persist(otherOwner);
         entityManager.persist(questionnaire);
+        entityManager.persist(otherQuestionnaire);
         entityManager.flush();
     }
 
@@ -242,21 +261,92 @@ class QuestionServiceImplTest {
         assertThrows(EntityInvalidArgumentException.class, () -> questionService.createQuestion(request, questionnaire.getUuid(), owner.getEmail()));
     }
 
+    @Test
+    void reorderQuestionsQuestionnaireIdInvalid() {
+        ReorderQuestionsRequest request = reorderRequest(firstQuestionUuid, secondQuestionUuid, thirdQuestionUuid);
+
+        assertThrows(EntityNotFoundException.class,
+                () -> questionService.reorderQuestions(request, UUID.randomUUID(), owner.getEmail()));
+    }
+
+    @Test
+    void reorderQuestionsUserDoesntOwnQuestionnaire() {
+        ReorderQuestionsRequest request = reorderRequest(firstQuestionUuid, secondQuestionUuid, thirdQuestionUuid);
+
+        assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.reorderQuestions(request, questionnaire.getUuid(), otherOwner.getEmail()));
+    }
+
+    @Test
+    void reorderQuestionsQuestionIdsListEmpty() {
+        ReorderQuestionsRequest request = new ReorderQuestionsRequest(List.of());
+
+        assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.reorderQuestions(request, questionnaire.getUuid(), owner.getEmail()));
+    }
+
+    @Test
+    void reorderQuestionsDuplicateQuestionIds() {
+        ReorderQuestionsRequest request = reorderRequest(firstQuestionUuid, firstQuestionUuid, secondQuestionUuid);
+
+        assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.reorderQuestions(request, questionnaire.getUuid(), owner.getEmail()));
+    }
+
+    @Test
+    void reorderQuestionsQuestionIdFromAnotherQuestionnaire() {
+        ReorderQuestionsRequest request = reorderRequest(firstQuestionUuid, secondQuestionUuid, otherQuestionUuid);
+
+        assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.reorderQuestions(request, questionnaire.getUuid(), owner.getEmail()));
+    }
+
+    @Test
+    void reorderQuestionsMissingQuestionIds() {
+        ReorderQuestionsRequest request = reorderRequest(firstQuestionUuid, secondQuestionUuid);
+
+        assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.reorderQuestions(request, questionnaire.getUuid(), owner.getEmail()));
+    }
+
+    @Test
+    void reorderQuestionsUpdatesQuestionOrder() throws EntityInvalidArgumentException, EntityNotFoundException {
+        ReorderQuestionsRequest request = reorderRequest(thirdQuestionUuid, firstQuestionUuid, secondQuestionUuid);
+
+        List<QuestionDTO> reorderedQuestions = questionService.reorderQuestions(request, questionnaire.getUuid(), owner.getEmail());
+
+        assertEquals(List.of(thirdQuestionUuid, firstQuestionUuid, secondQuestionUuid),
+                reorderedQuestions.stream().map(QuestionDTO::uuid).toList());
+
+        entityManager.flush();
+        entityManager.clear();
+
+        List<Question> savedQuestions = questionRepository.findAll().stream()
+                .filter(question -> question.getQuestionnaire().getUuid().equals(questionnaire.getUuid()))
+                .sorted(Comparator.comparing(Question::getOrder))
+                .toList();
+
+        assertEquals(List.of(thirdQuestionUuid, firstQuestionUuid, secondQuestionUuid),
+                savedQuestions.stream().map(Question::getUuid).toList());
+        assertEquals(List.of(0L, 1L, 2L), savedQuestions.stream().map(Question::getOrder).toList());
+    }
+
     private static CreateQuestionRequest freeTextRequest(String text) {
         return new CreateQuestionRequest(text, true, 0L, 0L, List.of());
     }
 
-    private static CreateQuestionRequest multipleChoiceRequest(String text) {
-        return new CreateQuestionRequest(
-                text,
-                false,
-                1L,
-                2L,
-                List.of(
-                        new CreatePossibleChoiceRequest("Red"),
-                        new CreatePossibleChoiceRequest("Green"),
-                        new CreatePossibleChoiceRequest("Blue")
-                )
-        );
+    private static ReorderQuestionsRequest reorderRequest(UUID... questionUuids) {
+        return new ReorderQuestionsRequest(List.of(questionUuids));
     }
+
+    private static Question createFreeTextQuestion(String text, Long order) {
+        Question question = new Question();
+        question.setText(text);
+        question.setIsFreeText(true);
+        question.setSelectMin(0L);
+        question.setSelectMax(0L);
+        question.setOrder(order);
+        return question;
+    }
+    
 }
