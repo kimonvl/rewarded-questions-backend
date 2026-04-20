@@ -2,6 +2,7 @@ package com.example.rewarded_questions_app.service;
 
 import com.example.rewarded_questions_app.dto.CreatePossibleChoiceRequest;
 import com.example.rewarded_questions_app.dto.CreateQuestionRequest;
+import com.example.rewarded_questions_app.dto.ReorderQuestionsRequest;
 import com.example.rewarded_questions_app.dto.response.QuestionDTO;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
 import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
@@ -19,7 +20,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -36,25 +39,24 @@ public class QuestionServiceImpl implements QuestionService{
     @Override
     @PreAuthorize("hasAuthority('CREATE_QUESTION')")
     @Transactional(rollbackFor = {EntityNotFoundException.class, EntityInvalidArgumentException.class})
-    public QuestionDTO createQuestion(CreateQuestionRequest request, UUID questionnaireId, String email) throws EntityNotFoundException, EntityInvalidArgumentException {
+    public QuestionDTO createQuestion(
+            CreateQuestionRequest request, UUID questionnaireId, String email
+    ) throws EntityNotFoundException, EntityInvalidArgumentException {
         try {
             validateCreateQuestionRequest(request);
-
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new EntityNotFoundException("CreateQuestionUser", "User with email=" + email + " not found"));
-
-            Questionnaire questionnaire = questionnaireRepository.findByUuid(questionnaireId)
+            Questionnaire questionnaire = questionnaireRepository.findWithQuestionsByUuid(questionnaireId)
                     .orElseThrow(() -> new EntityNotFoundException("CreateQuestionQuestionnaire", "Questionnaire with id=" + questionnaireId + " not found"));
-
             if (!questionnaire.getUser().equals(user)) {
-                throw new EntityInvalidArgumentException("CreateQuestionQuestionnaire", "Questionnaire with id=" + questionnaireId + " does not belong to user with email=" + email);
+                throw new EntityInvalidArgumentException("CreateQuestionQuestionnaireUser", "Questionnaire with id=" + questionnaireId + " does not belong to user with email=" + email);
             }
-
             if (existsByTextAndQuestionnaireId(request.text(), questionnaire.getId())) {
                 throw new EntityInvalidArgumentException("CreateQuestionTextUnique", "Question text must be unique within the questionnaire");
             }
 
             Question question = questionMapper.createQuestionRequestToQuestion(request);
+            question.setOrder((long) questionnaire.getAllQuestions().size());
             questionnaire.addQuestion(question);
             for (int i = 0; i < request.possibleChoices().size(); i++) {
                 question.addPossibleChoice(possibleChoiceMapper.createPossibleChoiceReqToPossibleChoice(request.possibleChoices().get(i), (long) i));
@@ -64,6 +66,48 @@ public class QuestionServiceImpl implements QuestionService{
             return questionMapper.toDto(saved);
         } catch (EntityNotFoundException | EntityInvalidArgumentException e) {
             log.warn("Question creation failed, by user with email={} for questionnaire with id={}. Message={}", email, questionnaireId, e.getMessage());
+            throw e;
+        }
+
+    }
+
+    @Override
+    @Transactional(rollbackFor = {EntityInvalidArgumentException.class, EntityNotFoundException.class})
+    public List<QuestionDTO> reorderQuestions(
+            ReorderQuestionsRequest request, UUID questionnaireId, String email
+    ) throws EntityInvalidArgumentException, EntityNotFoundException {
+        try {
+            if (request.questionUUIDs() == null || request.questionUUIDs().isEmpty()) {
+                throw new EntityInvalidArgumentException("ReorderQuestionsEmptyList", "Question UUID list cannot be null or empty");
+            }
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new EntityNotFoundException("ReorderQuestionsUser", "User with email=" + email + " not found"));
+            Questionnaire questionnaire = questionnaireRepository.findByUuid(questionnaireId)
+                    .orElseThrow(() -> new EntityNotFoundException("ReorderQuestionsQuestionnaire", "Questionnaire with id=" + questionnaireId + " not found"));
+            if (!questionnaire.getUser().equals(user)) {
+                throw new EntityInvalidArgumentException("ReorderQuestionsQuestionnaireUser", "Questionnaire with id=" + questionnaireId + " does not belong to user with email=" + email);
+            }
+            HashSet<UUID> questionIds = new HashSet<>(request.questionUUIDs());
+            if (questionIds.size() != questionnaire.getAllQuestions().size()) {
+                throw new EntityInvalidArgumentException("ReorderQuestionsSize", "Question UUID list size must match the number of questions in the questionnaire");
+            }
+
+            for (Question question : questionnaire.getAllQuestions()) {
+                int order = request.questionUUIDs().indexOf(question.getUuid());
+                if (order == -1) {
+                    throw new EntityInvalidArgumentException("ReorderQuestionsUUID", "Question UUID " + question.getUuid() + " is not in the provided list");
+                }
+                question.setOrder((long) order);
+            }
+            List<Question> savedQuestions = questionRepository.saveAll(questionnaire.getAllQuestions());
+
+            log.info("Questions reordered successfully by user with email={} for questionnaire with id={}", email, questionnaireId);
+            return savedQuestions.stream()
+                    .map(questionMapper::toDto)
+                    .sorted(Comparator.comparing(QuestionDTO::order))
+                    .toList();
+        } catch (EntityInvalidArgumentException | EntityNotFoundException e) {
+            log.warn("Reorder questions failed, by user with email={} for questionnaire with id={}. Message={}", email, questionnaireId, e.getMessage());
             throw e;
         }
 
