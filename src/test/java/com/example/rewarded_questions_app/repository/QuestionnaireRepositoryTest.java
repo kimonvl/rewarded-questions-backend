@@ -2,6 +2,7 @@ package com.example.rewarded_questions_app.repository;
 
 import com.example.rewarded_questions_app.model.questionnaire.Questionnaire;
 import com.example.rewarded_questions_app.model.questionnaire.Question;
+import com.example.rewarded_questions_app.model.questionnaire.PossibleChoice;
 import com.example.rewarded_questions_app.model.user.Capability;
 import com.example.rewarded_questions_app.model.user.Role;
 import com.example.rewarded_questions_app.model.user.User;
@@ -58,6 +59,10 @@ class QuestionnaireRepositoryTest {
         question.setSelectMin(0L);
         question.setSelectMax(0L);
         question.setOrder(0L);
+        PossibleChoice possibleChoice = new PossibleChoice();
+        possibleChoice.setText("Sample choice");
+        possibleChoice.setOrder(0L);
+        question.addPossibleChoice(possibleChoice);
         questionnaire.addQuestion(question);
 
         entityManager.persist(adminRole);
@@ -102,10 +107,13 @@ class QuestionnaireRepositoryTest {
     void findWithQuestionsByUuidReturnsQuestionnaireWithQuestionsLoaded() {
         Questionnaire foundQuestionnaire = questionnaireRepository.findWithQuestionsByUuid(questionnaireUuid).orElseThrow();
         PersistenceUnitUtil persistenceUnitUtil = entityManager.getEntityManagerFactory().getPersistenceUnitUtil();
+        Question foundQuestion = foundQuestionnaire.getAllQuestions().iterator().next();
 
         assertThat(foundQuestionnaire.getUuid()).isEqualTo(questionnaireUuid);
         assertThat(persistenceUnitUtil.isLoaded(foundQuestionnaire, "questions")).isTrue();
         assertThat(foundQuestionnaire.getAllQuestions()).hasSize(1);
+        assertThat(persistenceUnitUtil.isLoaded(foundQuestion, "possibleChoices")).isTrue();
+        assertThat(foundQuestion.getAllPossibleChoices()).hasSize(1);
     }
 
 }

@@ -10,7 +10,10 @@ import java.util.UUID;
 public interface QuestionnaireRepository extends JpaRepository<Questionnaire, Long> {
     boolean existsByUserIdAndTitle(Long id, String title);
 
-    @EntityGraph(attributePaths = "questions")
+    @EntityGraph(attributePaths = {
+            "questions",
+            "questions.possibleChoices"
+    })
     Optional<Questionnaire> findWithQuestionsByUuid(UUID uuid);
     Optional<Questionnaire> findByUuid(UUID uuid);
     Optional<Questionnaire> findByUserIdAndTitle(Long userId, String title);
