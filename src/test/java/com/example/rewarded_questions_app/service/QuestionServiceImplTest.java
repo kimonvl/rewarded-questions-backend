@@ -310,7 +310,7 @@ class QuestionServiceImplTest {
     }
 
     @Test
-    void reorderQuestionsUpdatesQuestionOrder() throws EntityInvalidArgumentException, EntityNotFoundException {
+    void reorderQuestionsSuccess() throws EntityInvalidArgumentException, EntityNotFoundException {
         ReorderQuestionsRequest request = reorderRequest(thirdQuestionUuid, firstQuestionUuid, secondQuestionUuid);
 
         List<QuestionDTO> reorderedQuestions = questionService.reorderQuestions(request, questionnaire.getUuid(), owner.getEmail());
@@ -328,6 +328,8 @@ class QuestionServiceImplTest {
 
         assertEquals(List.of(thirdQuestionUuid, firstQuestionUuid, secondQuestionUuid),
                 savedQuestions.stream().map(Question::getUuid).toList());
+        assertEquals(List.of(thirdQuestionUuid, firstQuestionUuid, secondQuestionUuid),
+                reorderedQuestions.stream().map(QuestionDTO::uuid).toList());
         assertEquals(List.of(0L, 1L, 2L), savedQuestions.stream().map(Question::getOrder).toList());
     }
 
