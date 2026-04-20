@@ -1,10 +1,12 @@
 package com.example.rewarded_questions_app.repository;
 
 import com.example.rewarded_questions_app.model.questionnaire.Questionnaire;
+import com.example.rewarded_questions_app.model.questionnaire.Question;
 import com.example.rewarded_questions_app.model.user.Capability;
 import com.example.rewarded_questions_app.model.user.Role;
 import com.example.rewarded_questions_app.model.user.User;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceUnitUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,10 +52,20 @@ class QuestionnaireRepositoryTest {
         questionnaire.setUser(owner);
         questionnaireUuid = questionnaire.getUuid();
 
+        Question question = new Question();
+        question.setText("Sample question?");
+        question.setIsFreeText(true);
+        question.setSelectMin(0L);
+        question.setSelectMax(0L);
+        question.setOrder(0L);
+        questionnaire.addQuestion(question);
+
         entityManager.persist(adminRole);
         entityManager.persist(owner);
 
         questionnaireRepository.save(questionnaire);
+        entityManager.flush();
+        entityManager.clear();
     }
 
     @Test
@@ -77,11 +89,23 @@ class QuestionnaireRepositoryTest {
     @Test
     void findByUuidReturnsQuestionnaire() {
         Questionnaire foundQuestionnaire = questionnaireRepository.findByUuid(questionnaireUuid).orElseThrow();
+        PersistenceUnitUtil persistenceUnitUtil = entityManager.getEntityManagerFactory().getPersistenceUnitUtil();
 
         assertThat(foundQuestionnaire.getUuid()).isEqualTo(questionnaireUuid);
         assertThat(foundQuestionnaire.getTitle()).isEqualTo("Sample Questionnaire");
         assertThat(foundQuestionnaire.getDescription()).isEqualTo("Sample Questionnaire description");
         assertThat(foundQuestionnaire.getUser()).isEqualTo(owner);
+        assertThat(persistenceUnitUtil.isLoaded(foundQuestionnaire, "questions")).isFalse();
+    }
+
+    @Test
+    void findWithQuestionsByUuidReturnsQuestionnaireWithQuestionsLoaded() {
+        Questionnaire foundQuestionnaire = questionnaireRepository.findWithQuestionsByUuid(questionnaireUuid).orElseThrow();
+        PersistenceUnitUtil persistenceUnitUtil = entityManager.getEntityManagerFactory().getPersistenceUnitUtil();
+
+        assertThat(foundQuestionnaire.getUuid()).isEqualTo(questionnaireUuid);
+        assertThat(persistenceUnitUtil.isLoaded(foundQuestionnaire, "questions")).isTrue();
+        assertThat(foundQuestionnaire.getAllQuestions()).hasSize(1);
     }
 
 }
