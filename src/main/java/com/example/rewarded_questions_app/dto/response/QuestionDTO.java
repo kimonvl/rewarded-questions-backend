@@ -10,6 +10,7 @@ public record QuestionDTO(
         Boolean isFreeText,
         Long selectMin,
         Long selectMax,
+        Long order,
         List<PossibleChoiceDTO> possibleChoices
 ) {
 }

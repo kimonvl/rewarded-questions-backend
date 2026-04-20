@@ -47,6 +47,9 @@ public class Question extends AbstractEntity {
     @Column(nullable = true)
     private Long selectMax;
 
+    @Column(name = "question_order", nullable = false)
+    private Long order;
+
     @Getter(AccessLevel.PROTECTED)
     @Setter(AccessLevel.PRIVATE)
     @OneToMany(mappedBy = "question", fetch = FetchType.LAZY,

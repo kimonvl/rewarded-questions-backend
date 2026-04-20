@@ -1,0 +1,2 @@
+ALTER TABLE questions
+ADD COLUMN question_order BIGINT NOT NULL DEFAULT 0;

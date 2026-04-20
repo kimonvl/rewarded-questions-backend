@@ -33,6 +33,7 @@ public class QuestionMapper {
                 question.getIsFreeText(),
                 question.getSelectMin(),
                 question.getSelectMax(),
+                question.getOrder(),
                 question.getAllPossibleChoices().stream()
                         .sorted(Comparator.comparing(PossibleChoice::getOrder))
                         .map(possibleChoiceMapper::toDto)
