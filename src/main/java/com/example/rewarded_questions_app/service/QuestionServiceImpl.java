@@ -46,7 +46,7 @@ public class QuestionServiceImpl implements QuestionService{
             validateCreateQuestionRequest(request);
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new EntityNotFoundException("CreateQuestionUser", "User with email=" + email + " not found"));
-            Questionnaire questionnaire = questionnaireRepository.findWithQuestionsByUuid(questionnaireId)
+            Questionnaire questionnaire = questionnaireRepository.findByUuid(questionnaireId)
                     .orElseThrow(() -> new EntityNotFoundException("CreateQuestionQuestionnaire", "Questionnaire with id=" + questionnaireId + " not found"));
             if (!questionnaire.getUser().equals(user)) {
                 throw new EntityInvalidArgumentException("CreateQuestionQuestionnaireUser", "Questionnaire with id=" + questionnaireId + " does not belong to user with email=" + email);
@@ -82,7 +82,7 @@ public class QuestionServiceImpl implements QuestionService{
             }
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new EntityNotFoundException("ReorderQuestionsUser", "User with email=" + email + " not found"));
-            Questionnaire questionnaire = questionnaireRepository.findByUuid(questionnaireId)
+            Questionnaire questionnaire = questionnaireRepository.findWithQuestionsByUuid(questionnaireId)
                     .orElseThrow(() -> new EntityNotFoundException("ReorderQuestionsQuestionnaire", "Questionnaire with id=" + questionnaireId + " not found"));
             if (!questionnaire.getUser().equals(user)) {
                 throw new EntityInvalidArgumentException("ReorderQuestionsQuestionnaireUser", "Questionnaire with id=" + questionnaireId + " does not belong to user with email=" + email);
@@ -102,6 +102,7 @@ public class QuestionServiceImpl implements QuestionService{
             List<Question> savedQuestions = questionRepository.saveAll(questionnaire.getAllQuestions());
 
             log.info("Questions reordered successfully by user with email={} for questionnaire with id={}", email, questionnaireId);
+            // TODO: fix lazy loading of possible choices
             return savedQuestions.stream()
                     .map(questionMapper::toDto)
                     .sorted(Comparator.comparing(QuestionDTO::order))
