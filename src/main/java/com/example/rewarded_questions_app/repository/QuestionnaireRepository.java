@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public interface QuestionnaireRepository extends JpaRepository<Questionnaire, Long> {
     boolean existsByUserIdAndTitle(Long id, String title);
+    boolean existsByUserEmailAndTitle(String email, String title);
 
     @EntityGraph(attributePaths = {
             "questions",
