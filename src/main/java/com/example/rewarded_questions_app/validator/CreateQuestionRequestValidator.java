@@ -1,7 +1,7 @@
 package com.example.rewarded_questions_app.validator;
 
-import com.example.rewarded_questions_app.dto.CreatePossibleChoiceRequest;
-import com.example.rewarded_questions_app.dto.CreateQuestionRequest;
+import com.example.rewarded_questions_app.dto.request.CreatePossibleChoiceRequest;
+import com.example.rewarded_questions_app.dto.request.CreateQuestionRequest;
 import com.example.rewarded_questions_app.model.questionnaire.Questionnaire;
 import com.example.rewarded_questions_app.service.QuestionService;
 import com.example.rewarded_questions_app.service.QuestionnaireService;

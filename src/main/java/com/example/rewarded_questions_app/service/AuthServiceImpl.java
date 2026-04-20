@@ -2,8 +2,8 @@ package com.example.rewarded_questions_app.service;
 
 import com.example.rewarded_questions_app.authentication.JwtService;
 import com.example.rewarded_questions_app.dto.response.AuthResponseDTO;
-import com.example.rewarded_questions_app.dto.LoginRequest;
-import com.example.rewarded_questions_app.dto.RegisterRequest;
+import com.example.rewarded_questions_app.dto.request.LoginRequest;
+import com.example.rewarded_questions_app.dto.request.RegisterRequest;
 import com.example.rewarded_questions_app.dto.response.UserDTO;
 import com.example.rewarded_questions_app.exceptions.EntityAlreadyExistsException;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;

@@ -1,11 +1,13 @@
-package com.example.rewarded_questions_app.dto;
+package com.example.rewarded_questions_app.dto.request;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-public record LoginRequest(
+public record RegisterRequest(
         @NotBlank @Email @Size(min = 3, max = 100) String email,
         @NotBlank @Size(min = 6, max = 100) String password,
-        @NotNull Long roleId
+        @NotBlank @Size(min = 6, max = 100) String organization,
+        @NotNull Long roleId // "ADMIN" (MVP)
 ) {}

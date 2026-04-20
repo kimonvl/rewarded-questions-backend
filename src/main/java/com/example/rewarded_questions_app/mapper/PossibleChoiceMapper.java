@@ -1,6 +1,6 @@
 package com.example.rewarded_questions_app.mapper;
 
-import com.example.rewarded_questions_app.dto.CreatePossibleChoiceRequest;
+import com.example.rewarded_questions_app.dto.request.CreatePossibleChoiceRequest;
 import com.example.rewarded_questions_app.dto.response.PossibleChoiceDTO;
 import com.example.rewarded_questions_app.model.questionnaire.PossibleChoice;
 import lombok.RequiredArgsConstructor;
