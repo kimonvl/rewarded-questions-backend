@@ -3,6 +3,7 @@ package com.example.rewarded_questions_app.api;
 import com.example.rewarded_questions_app.dto.CreateQuestionRequest;
 import com.example.rewarded_questions_app.dto.CreateQuestionnaireRequest;
 import com.example.rewarded_questions_app.dto.GenericResponse;
+import com.example.rewarded_questions_app.dto.ReorderQuestionsRequest;
 import com.example.rewarded_questions_app.dto.response.QuestionDTO;
 import com.example.rewarded_questions_app.dto.response.QuestionnaireDTO;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
@@ -20,6 +21,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -40,9 +42,6 @@ public class QuestionnaireRestController {
     ) throws ValidationException, EntityNotFoundException, EntityInvalidArgumentException {
 
         if (bindingResult.hasErrors()) {
-            bindingResult.getAllErrors().forEach(error -> {
-                System.out.println(error.getCode() + error.getDefaultMessage());
-            });
             throw new ValidationException("CreateQuestionnaireRequest", "Questionnaire creation failed during validation", bindingResult);
         }
         return new ResponseEntity<>(
@@ -65,9 +64,6 @@ public class QuestionnaireRestController {
 
         createQuestionRequestValidator.validate(req, bindingResult, id);
         if (bindingResult.hasErrors()) {
-            bindingResult.getAllErrors().forEach(error -> {
-                System.out.println(error.getCode() + error.getDefaultMessage());
-            });
             throw new ValidationException("CreateQuestionRequest", "Question creation failed during validation", bindingResult);
         }
         return new ResponseEntity<>(
@@ -78,5 +74,27 @@ public class QuestionnaireRestController {
                         true
                 ),
                 HttpStatus.CREATED);
+    }
+
+    @PatchMapping("/{id}/questions/order")
+    public ResponseEntity<@NonNull GenericResponse<List<QuestionDTO>>> reorderQuestions(
+            @Valid @RequestBody ReorderQuestionsRequest req,
+            BindingResult bindingResult,
+            Principal principal,
+            @PathVariable UUID id
+    ) throws ValidationException, EntityInvalidArgumentException, EntityNotFoundException {
+
+        // ReorderQuestionsRequest validator
+        if (bindingResult.hasErrors()) {
+            throw new ValidationException("ReorderQuestionsRequest", "Question reordering failed during validation", bindingResult);
+        }
+        return new ResponseEntity<>(
+                new GenericResponse<>(
+                        questionService.reorderQuestions(req,  id, principal.getName()),
+                        "ReorderQuestionsSucceeded",
+                        "Questions reordered successfully",
+                        true
+                ),
+                HttpStatus.OK);
     }
 }
