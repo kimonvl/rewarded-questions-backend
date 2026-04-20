@@ -79,6 +79,7 @@ class QuestionServiceImplTest {
         existingQuestion.setIsFreeText(true);
         existingQuestion.setSelectMin(0L);
         existingQuestion.setSelectMax(0L);
+        existingQuestion.setOrder(0L);
         questionnaire.addQuestion(existingQuestion);
 
         entityManager.persist(createQuestion);

@@ -50,6 +50,7 @@ class QuestionRepositoryTest {
         Question question = new Question();
         question.setText("Sample question?");
         question.setIsFreeText(true);
+        question.setOrder(0L);
         questionnaire.addQuestion(question);
 
         entityManager.persist(adminRole);
