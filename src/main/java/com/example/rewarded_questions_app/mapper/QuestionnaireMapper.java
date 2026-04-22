@@ -1,6 +1,7 @@
 package com.example.rewarded_questions_app.mapper;
 
 import com.example.rewarded_questions_app.dto.request.CreateQuestionnaireRequest;
+import com.example.rewarded_questions_app.dto.response.QuestionnaireDetailsDTO;
 import com.example.rewarded_questions_app.dto.response.QuestionnaireWithQuestionsDTO;
 import com.example.rewarded_questions_app.model.questionnaire.Questionnaire;
 import com.example.rewarded_questions_app.model.user.User;
@@ -22,7 +23,7 @@ public class QuestionnaireMapper {
         return questionnaire;
     }
 
-    public QuestionnaireWithQuestionsDTO toQuestionnaireDTO(Questionnaire questionnaire) {
+    public QuestionnaireWithQuestionsDTO toQuestionnaireWithQuestionsDTO(Questionnaire questionnaire) {
         return new QuestionnaireWithQuestionsDTO(
                 questionnaire.getUuid(),
                 questionnaire.getTitle(),
@@ -30,6 +31,14 @@ public class QuestionnaireMapper {
                 questionnaire.getAllQuestions().stream()
                         .map(questionMapper::toDto)
                         .toList()
+        );
+    }
+
+    public QuestionnaireDetailsDTO toQuestionnaireDetailsDTO(Questionnaire questionnaire) {
+        return new QuestionnaireDetailsDTO(
+                questionnaire.getUuid(),
+                questionnaire.getTitle(),
+                questionnaire.getDescription()
         );
     }
 }
