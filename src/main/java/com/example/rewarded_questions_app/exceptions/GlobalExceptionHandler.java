@@ -12,6 +12,7 @@ import org.springframework.security.authentication.*;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -40,6 +41,9 @@ public class GlobalExceptionHandler {
         Map<String, String> errors = new HashMap<>();
         for (FieldError filedError : bindingResult.getFieldErrors()) {
             errors.put(filedError.getField(), filedError.getCode());
+        }
+        for (ObjectError globalError : bindingResult.getGlobalErrors()) {
+            errors.put("global", globalError.getCode());
         }
 
         return new ResponseEntity<>(new GenericResponse<>(errors, e.getCode(), e.getMessage(), false),
