@@ -13,7 +13,7 @@ import java.util.UUID;
 
 public interface QuestionnaireService {
     QuestionnaireWithQuestionsDTO createQuestionnaire(CreateQuestionnaireRequest request, String email) throws EntityNotFoundException, EntityInvalidArgumentException;
-    QuestionnaireDetailsDTO editQuestionnaireDetails(EditQuestionnaireDetailsRequest request, UUID questionnaireId, String email);
+    QuestionnaireDetailsDTO editQuestionnaireDetails(EditQuestionnaireDetailsRequest request, UUID questionnaireId, String email) throws EntityNotFoundException, EntityInvalidArgumentException;
 
     Optional<Questionnaire> findQuestionnaireByUuid(UUID uuid);
     boolean existsQuestionnaireByTitleAndUserEmail(String title, String email);
