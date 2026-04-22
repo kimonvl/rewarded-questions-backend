@@ -1,17 +1,20 @@
 package com.example.rewarded_questions_app.api;
 
-import com.example.rewarded_questions_app.dto.CreateQuestionRequest;
-import com.example.rewarded_questions_app.dto.CreateQuestionnaireRequest;
+import com.example.rewarded_questions_app.dto.request.CreateQuestionRequest;
+import com.example.rewarded_questions_app.dto.request.CreateQuestionnaireRequest;
 import com.example.rewarded_questions_app.dto.GenericResponse;
-import com.example.rewarded_questions_app.dto.ReorderQuestionsRequest;
+import com.example.rewarded_questions_app.dto.request.EditQuestionnaireDetailsRequest;
+import com.example.rewarded_questions_app.dto.request.ReorderQuestionsRequest;
 import com.example.rewarded_questions_app.dto.response.QuestionDTO;
-import com.example.rewarded_questions_app.dto.response.QuestionnaireDTO;
+import com.example.rewarded_questions_app.dto.response.QuestionnaireDetailsDTO;
+import com.example.rewarded_questions_app.dto.response.QuestionnaireWithQuestionsDTO;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
 import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
 import com.example.rewarded_questions_app.exceptions.ValidationException;
 import com.example.rewarded_questions_app.service.QuestionService;
 import com.example.rewarded_questions_app.service.QuestionnaireService;
 import com.example.rewarded_questions_app.validator.CreateQuestionRequestValidator;
+import com.example.rewarded_questions_app.validator.EditQuestionnaireDetailsRequestValidator;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
@@ -33,9 +36,10 @@ public class QuestionnaireRestController {
     private final QuestionService questionService;
 
     private final CreateQuestionRequestValidator createQuestionRequestValidator;
+    private final EditQuestionnaireDetailsRequestValidator editQuestionnaireDetailsRequestValidator;
 
     @PostMapping()
-    public ResponseEntity<@NonNull GenericResponse<QuestionnaireDTO>> createQuestionnaire(
+    public ResponseEntity<@NonNull GenericResponse<QuestionnaireWithQuestionsDTO>> createQuestionnaire(
             @Valid @RequestBody CreateQuestionnaireRequest req,
             BindingResult bindingResult,
             Principal principal
@@ -84,7 +88,7 @@ public class QuestionnaireRestController {
             @PathVariable UUID id
     ) throws ValidationException, EntityInvalidArgumentException, EntityNotFoundException {
 
-        // ReorderQuestionsRequest validator
+        // TODO: ReorderQuestionsRequest validator
         if (bindingResult.hasErrors()) {
             throw new ValidationException("ReorderQuestionsRequest", "Question reordering failed during validation", bindingResult);
         }
@@ -93,6 +97,27 @@ public class QuestionnaireRestController {
                         questionService.reorderQuestions(req,  id, principal.getName()),
                         "ReorderQuestionsSucceeded",
                         "Questions reordered successfully",
+                        true
+                ),
+                HttpStatus.OK);
+    }
+    @PatchMapping("/{id}")
+    public ResponseEntity<@NonNull GenericResponse<QuestionnaireDetailsDTO>> editQuestionnaireDetails(
+            @Valid @RequestBody EditQuestionnaireDetailsRequest req,
+            BindingResult bindingResult,
+            Principal principal,
+            @PathVariable UUID id
+    ) throws ValidationException, EntityInvalidArgumentException, EntityNotFoundException {
+        editQuestionnaireDetailsRequestValidator.validate(req, bindingResult, id, principal.getName());
+        if (bindingResult.hasErrors()) {
+            throw new ValidationException("EditQuestionnaireDetailsRequest", "Questionnaire details editing failed during validation", bindingResult);
+        }
+
+        return new ResponseEntity<>(
+                new GenericResponse<>(
+                        questionnaireService.editQuestionnaireDetails(req,  id, principal.getName()),
+                        "EditQuestionnaireDetailsSucceeded",
+                        "Questionnaire details edited successfully",
                         true
                 ),
                 HttpStatus.OK);
