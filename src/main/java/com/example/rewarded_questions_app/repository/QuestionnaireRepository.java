@@ -8,14 +8,14 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface QuestionnaireRepository extends JpaRepository<Questionnaire, Long> {
-    boolean existsByUserIdAndTitle(Long id, String title);
-    boolean existsByUserEmailAndTitle(String email, String title);
+    boolean existsByUserIdAndTitleAndDeletedFalse(Long id, String title);
+    boolean existsByUserEmailAndTitleAndDeletedFalse(String email, String title);
 
     @EntityGraph(attributePaths = {
             "questions",
             "questions.possibleChoices"
     })
-    Optional<Questionnaire> findWithQuestionsByUuid(UUID uuid);
-    Optional<Questionnaire> findByUuid(UUID uuid);
-    Optional<Questionnaire> findByUserIdAndTitle(Long userId, String title);
+    Optional<Questionnaire> findWithQuestionsByUuidAndDeletedFalse(UUID uuid);
+    Optional<Questionnaire> findByUuidAndDeletedFalse(UUID uuid);
+    Optional<Questionnaire> findByUserIdAndTitleAndDeletedFalse(Long userId, String title);
 }

@@ -32,6 +32,7 @@ class QuestionnaireRepositoryTest {
 
     private User owner;
     private UUID questionnaireUuid;
+    private UUID deletedQuestionnaireUuid;
 
     @BeforeEach
     void setUp() {
@@ -65,35 +66,61 @@ class QuestionnaireRepositoryTest {
         question.addPossibleChoice(possibleChoice);
         questionnaire.addQuestion(question);
 
+        Questionnaire deletedQuestionnaire = new Questionnaire();
+        deletedQuestionnaire.setTitle("Deleted Questionnaire");
+        deletedQuestionnaire.setDescription("Deleted Questionnaire description");
+        deletedQuestionnaire.setUser(owner);
+        deletedQuestionnaireUuid = deletedQuestionnaire.getUuid();
+        deletedQuestionnaire.softDelete();
+
         entityManager.persist(adminRole);
         entityManager.persist(owner);
 
         questionnaireRepository.save(questionnaire);
+        questionnaireRepository.save(deletedQuestionnaire);
         entityManager.flush();
         entityManager.clear();
     }
 
     @Test
-    void existsByUserIdAndTitleSameTitleDifferentUserReturnsFalse() {
-        boolean exists = questionnaireRepository.existsByUserIdAndTitle(owner.getId() + 1, "Sample Questionnaire");
+    void existsByUserIdAndTitleAndDeletedFalseSameTitleDifferentUserReturnsFalse() {
+        boolean exists = questionnaireRepository.existsByUserIdAndTitleAndDeletedFalse(owner.getId() + 1, "Sample Questionnaire");
         assertThat(exists).isFalse();
     }
 
     @Test
-    void existsByUserIdAndTitleSameUserDifferentTitleReturnsFalse() {
-        boolean exists = questionnaireRepository.existsByUserIdAndTitle(owner.getId(), "Sample Questionnaire 1");
+    void existsByUserIdAndTitleAndDeletedFalseSameUserDifferentTitleReturnsFalse() {
+        boolean exists = questionnaireRepository.existsByUserIdAndTitleAndDeletedFalse(owner.getId(), "Sample Questionnaire 1");
         assertThat(exists).isFalse();
     }
 
     @Test
-    void existsByUserIdAndTitleSameUserSameTitleReturnsTrue() {
-        boolean exists = questionnaireRepository.existsByUserIdAndTitle(owner.getId(), "Sample Questionnaire");
+    void existsByUserIdAndTitleAndDeletedFalseSameUserSameTitleReturnsTrue() {
+        boolean exists = questionnaireRepository.existsByUserIdAndTitleAndDeletedFalse(owner.getId(), "Sample Questionnaire");
         assertThat(exists).isTrue();
     }
 
     @Test
-    void findByUuidReturnsQuestionnaire() {
-        Questionnaire foundQuestionnaire = questionnaireRepository.findByUuid(questionnaireUuid).orElseThrow();
+    void existsByUserIdAndTitleAndDeletedFalseDeletedQuestionnaireReturnsFalse() {
+        boolean exists = questionnaireRepository.existsByUserIdAndTitleAndDeletedFalse(owner.getId(), "Deleted Questionnaire");
+        assertThat(exists).isFalse();
+    }
+
+    @Test
+    void existsByUserEmailAndTitleAndDeletedFalseActiveQuestionnaireReturnsTrue() {
+        boolean exists = questionnaireRepository.existsByUserEmailAndTitleAndDeletedFalse(owner.getEmail(), "Sample Questionnaire");
+        assertThat(exists).isTrue();
+    }
+
+    @Test
+    void existsByUserEmailAndTitleAndDeletedFalseDeletedQuestionnaireReturnsFalse() {
+        boolean exists = questionnaireRepository.existsByUserEmailAndTitleAndDeletedFalse(owner.getEmail(), "Deleted Questionnaire");
+        assertThat(exists).isFalse();
+    }
+
+    @Test
+    void findByUuidAndDeletedFalseReturnsQuestionnaire() {
+        Questionnaire foundQuestionnaire = questionnaireRepository.findByUuidAndDeletedFalse(questionnaireUuid).orElseThrow();
         PersistenceUnitUtil persistenceUnitUtil = entityManager.getEntityManagerFactory().getPersistenceUnitUtil();
 
         assertThat(foundQuestionnaire.getUuid()).isEqualTo(questionnaireUuid);
@@ -104,16 +131,41 @@ class QuestionnaireRepositoryTest {
     }
 
     @Test
-    void findWithQuestionsByUuidReturnsQuestionnaireWithQuestionsLoaded() {
-        Questionnaire foundQuestionnaire = questionnaireRepository.findWithQuestionsByUuid(questionnaireUuid).orElseThrow();
+    void findByUuidAndDeletedFalseDeletedQuestionnaireReturnsEmpty() {
+        assertThat(questionnaireRepository.findByUuidAndDeletedFalse(deletedQuestionnaireUuid)).isEmpty();
+    }
+
+    @Test
+    void findByUserIdAndTitleAndDeletedFalseReturnsQuestionnaire() {
+        Questionnaire foundQuestionnaire = questionnaireRepository.findByUserIdAndTitleAndDeletedFalse(owner.getId(), "Sample Questionnaire").orElseThrow();
+
+        assertThat(foundQuestionnaire.getUuid()).isEqualTo(questionnaireUuid);
+        assertThat(foundQuestionnaire.getTitle()).isEqualTo("Sample Questionnaire");
+        assertThat(foundQuestionnaire.isDeleted()).isFalse();
+    }
+
+    @Test
+    void findByUserIdAndTitleAndDeletedFalseDeletedQuestionnaireReturnsEmpty() {
+        assertThat(questionnaireRepository.findByUserIdAndTitleAndDeletedFalse(owner.getId(), "Deleted Questionnaire")).isEmpty();
+    }
+
+    @Test
+    void findWithQuestionsByUuidAndDeletedFalseReturnsQuestionnaireWithQuestionsLoaded() {
+        Questionnaire foundQuestionnaire = questionnaireRepository.findWithQuestionsByUuidAndDeletedFalse(questionnaireUuid).orElseThrow();
         PersistenceUnitUtil persistenceUnitUtil = entityManager.getEntityManagerFactory().getPersistenceUnitUtil();
         Question foundQuestion = foundQuestionnaire.getAllQuestions().iterator().next();
 
         assertThat(foundQuestionnaire.getUuid()).isEqualTo(questionnaireUuid);
+        assertThat(foundQuestionnaire.isDeleted()).isFalse();
         assertThat(persistenceUnitUtil.isLoaded(foundQuestionnaire, "questions")).isTrue();
         assertThat(foundQuestionnaire.getAllQuestions()).hasSize(1);
         assertThat(persistenceUnitUtil.isLoaded(foundQuestion, "possibleChoices")).isTrue();
         assertThat(foundQuestion.getAllPossibleChoices()).hasSize(1);
+    }
+
+    @Test
+    void findWithQuestionsByUuidAndDeletedFalseDeletedQuestionnaireReturnsEmpty() {
+        assertThat(questionnaireRepository.findWithQuestionsByUuidAndDeletedFalse(deletedQuestionnaireUuid)).isEmpty();
     }
 
 }

@@ -38,7 +38,7 @@ public class QuestionnaireServiceImpl implements QuestionnaireService{
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new EntityNotFoundException("CreateQuestionnaireUser", "User with email=" + email + " not found"));
 
-            if (questionnaireRepository.existsByUserIdAndTitle(user.getId(), request.title())) {
+            if (questionnaireRepository.existsByUserIdAndTitleAndDeletedFalse(user.getId(), request.title())) {
                 throw new EntityInvalidArgumentException("CreateQuestionnaireTitle", "Questionnaire with title=" + request.title() + " already exists for user with email=" + email);
             }
 
@@ -58,7 +58,7 @@ public class QuestionnaireServiceImpl implements QuestionnaireService{
         try {
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new EntityNotFoundException("EditQuestionnaireDetailsUser", "User with email=" + email + " not found"));
-            Questionnaire questionnaire = questionnaireRepository.findByUuid(questionnaireId)
+            Questionnaire questionnaire = questionnaireRepository.findByUuidAndDeletedFalse(questionnaireId)
                     .orElseThrow(() -> new EntityNotFoundException("EditQuestionnaireDetailsQuestionnaire", "Questionnaire with id=" + questionnaireId + " not found"));
             if(!questionnaire.getUser().equals(user)) {
                 throw new EntityInvalidArgumentException("EditQuestionnaireDetailsUserQuestionnaire", "User with email=" + email + " is not the owner of the questionnaire with id=" + questionnaireId);
@@ -76,7 +76,7 @@ public class QuestionnaireServiceImpl implements QuestionnaireService{
                 if (request.title().trim().length() < 3 || request.title().trim().length() > 30) {
                     throw new EntityInvalidArgumentException("EditQuestionnaireDetailsTitleLength", "Title length must be between 3 and 30 characters.");
                 }
-                if (questionnaireRepository.existsByUserIdAndTitle(user.getId(), request.title().trim()) && !questionnaire.getTitle().equals(request.title())) {
+                if (questionnaireRepository.existsByUserIdAndTitleAndDeletedFalse(user.getId(), request.title().trim()) && !questionnaire.getTitle().equals(request.title())) {
                     throw new EntityInvalidArgumentException("EditQuestionnaireDetailsTitleNotUnique", "Questionnaire with title=" + request.title() + " already exists for user with email=" + email);
                 }
                 questionnaire.setTitle(request.title().trim());
@@ -99,11 +99,11 @@ public class QuestionnaireServiceImpl implements QuestionnaireService{
 
     @Override
     public Optional<Questionnaire> findQuestionnaireByUuid(UUID uuid) {
-        return questionnaireRepository.findByUuid(uuid);
+        return questionnaireRepository.findByUuidAndDeletedFalse(uuid);
     }
 
     @Override
     public boolean existsQuestionnaireByTitleAndUserEmail(String title, String email) {
-        return questionnaireRepository.existsByUserEmailAndTitle(email, title);
+        return questionnaireRepository.existsByUserEmailAndTitleAndDeletedFalse(email, title);
     }
 }

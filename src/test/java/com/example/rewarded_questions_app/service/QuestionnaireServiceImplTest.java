@@ -90,7 +90,7 @@ class QuestionnaireServiceImplTest {
         CreateQuestionnaireRequest request = new CreateQuestionnaireRequest("New Questionnaire", "Description");
 
         QuestionnaireWithQuestionsDTO result = questionnaireService.createQuestionnaire(request, owner.getEmail());
-        Questionnaire saved = questionnaireRepository.findByUserIdAndTitle(owner.getId(), request.title()).orElseThrow();
+        Questionnaire saved = questionnaireRepository.findByUserIdAndTitleAndDeletedFalse(owner.getId(), request.title()).orElseThrow();
 
         assertThat(saved.getUser()).isEqualTo(owner);
         assertThat(saved.getTitle()).isEqualTo(request.title());
@@ -185,7 +185,7 @@ class QuestionnaireServiceImplTest {
         EditQuestionnaireDetailsRequest request = new EditQuestionnaireDetailsRequest("New Title", null);
 
         QuestionnaireDetailsDTO result = questionnaireService.editQuestionnaireDetails(request, questionnaire.getUuid(), owner.getEmail());
-        Questionnaire saved = questionnaireRepository.findByUuid(questionnaire.getUuid()).orElseThrow();
+        Questionnaire saved = questionnaireRepository.findByUuidAndDeletedFalse(questionnaire.getUuid()).orElseThrow();
 
         assertThat(saved.getTitle()).isEqualTo(request.title());
         assertThat(saved.getDescription()).isEqualTo("Sample Questionnaire description");
@@ -200,7 +200,7 @@ class QuestionnaireServiceImplTest {
         EditQuestionnaireDetailsRequest request = new EditQuestionnaireDetailsRequest(null, "New Questionnaire description");
 
         QuestionnaireDetailsDTO result = questionnaireService.editQuestionnaireDetails(request, questionnaire.getUuid(), owner.getEmail());
-        Questionnaire saved = questionnaireRepository.findByUuid(questionnaire.getUuid()).orElseThrow();
+        Questionnaire saved = questionnaireRepository.findByUuidAndDeletedFalse(questionnaire.getUuid()).orElseThrow();
 
         assertThat(saved.getTitle()).isEqualTo("Sample Questionnaire");
         assertThat(saved.getDescription()).isEqualTo(request.description());
@@ -215,7 +215,7 @@ class QuestionnaireServiceImplTest {
         EditQuestionnaireDetailsRequest request = new EditQuestionnaireDetailsRequest("New Title", "New Questionnaire description");
 
         QuestionnaireDetailsDTO result = questionnaireService.editQuestionnaireDetails(request, questionnaire.getUuid(), owner.getEmail());
-        Questionnaire saved = questionnaireRepository.findByUuid(questionnaire.getUuid()).orElseThrow();
+        Questionnaire saved = questionnaireRepository.findByUuidAndDeletedFalse(questionnaire.getUuid()).orElseThrow();
 
         assertThat(saved.getTitle()).isEqualTo(request.title());
         assertThat(saved.getDescription()).isEqualTo(request.description());
