@@ -1,6 +1,8 @@
 package com.example.rewarded_questions_app.service;
 
 import com.example.rewarded_questions_app.dto.request.CreateQuestionnaireRequest;
+import com.example.rewarded_questions_app.dto.request.EditQuestionnaireDetailsRequest;
+import com.example.rewarded_questions_app.dto.response.QuestionnaireDetailsDTO;
 import com.example.rewarded_questions_app.dto.response.QuestionnaireWithQuestionsDTO;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
 import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
@@ -29,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @Transactional
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@WithMockUser(authorities = "CREATE_QUESTIONNAIRE")
+@WithMockUser(authorities = {"CREATE_QUESTIONNAIRE", "EDIT_QUESTIONNAIRE"})
 class QuestionnaireServiceImplTest {
 
     @Autowired
@@ -42,6 +44,7 @@ class QuestionnaireServiceImplTest {
     private EntityManager entityManager;
 
     private User owner;
+    private Questionnaire questionnaire;
 
     @BeforeEach
     void setUp() {
@@ -57,7 +60,7 @@ class QuestionnaireServiceImplTest {
         owner.setOrganization("Example Org");
         adminRole.addUser(owner);
 
-        Questionnaire questionnaire = new Questionnaire();
+        questionnaire = new Questionnaire();
         questionnaire.setTitle("Sample Questionnaire");
         questionnaire.setDescription("Sample Questionnaire description");
         questionnaire.setUser(owner);
@@ -99,5 +102,126 @@ class QuestionnaireServiceImplTest {
         assertThat(result.title()).isEqualTo(saved.getTitle());
         assertThat(result.description()).isEqualTo(saved.getDescription());
         assertThat(result.questions().size()).isEqualTo(saved.getAllQuestions().size());
+    }
+
+    @Test
+    void editQuestionnaireDetailsUserNotFound() {
+        EditQuestionnaireDetailsRequest request = new EditQuestionnaireDetailsRequest("New Title", null);
+
+        assertThrows(EntityNotFoundException.class, () -> questionnaireService.editQuestionnaireDetails(request, questionnaire.getUuid(), "missing@example.com"));
+    }
+
+    @Test
+    void editQuestionnaireDetailsQuestionnaireNotFound() {
+        EditQuestionnaireDetailsRequest request = new EditQuestionnaireDetailsRequest("New Title", null);
+
+        assertThrows(EntityNotFoundException.class, () -> questionnaireService.editQuestionnaireDetails(request, java.util.UUID.randomUUID(), owner.getEmail()));
+    }
+
+    @Test
+    void editQuestionnaireDetailsUserNotOwner() {
+        User otherUser = new User();
+        otherUser.setEmail("other@example.com");
+        otherUser.setPassword("password");
+        otherUser.setOrganization("Other Org");
+        owner.getRole().addUser(otherUser);
+        entityManager.persist(otherUser);
+
+        EditQuestionnaireDetailsRequest request = new EditQuestionnaireDetailsRequest("New Title", null);
+
+        assertThrows(EntityInvalidArgumentException.class, () -> questionnaireService.editQuestionnaireDetails(request, questionnaire.getUuid(), otherUser.getEmail()));
+    }
+
+    @Test
+    void editQuestionnaireDetailsTitleAndDescriptionNull() {
+        EditQuestionnaireDetailsRequest request = new EditQuestionnaireDetailsRequest(null, null);
+
+        assertThrows(EntityInvalidArgumentException.class, () -> questionnaireService.editQuestionnaireDetails(request, questionnaire.getUuid(), owner.getEmail()));
+    }
+
+    @Test
+    void editQuestionnaireDetailsTitleEmpty() {
+        EditQuestionnaireDetailsRequest request = new EditQuestionnaireDetailsRequest("", "Description");
+
+        assertThrows(EntityInvalidArgumentException.class, () -> questionnaireService.editQuestionnaireDetails(request, questionnaire.getUuid(), owner.getEmail()));
+    }
+
+    @Test
+    void editQuestionnaireDetailsDescriptionEmpty() {
+        EditQuestionnaireDetailsRequest request = new EditQuestionnaireDetailsRequest(null, "");
+
+        assertThrows(EntityInvalidArgumentException.class, () -> questionnaireService.editQuestionnaireDetails(request, questionnaire.getUuid(), owner.getEmail()));
+    }
+
+    @Test
+    void editQuestionnaireDetailsTitleExists() {
+        Questionnaire existingQuestionnaire = new Questionnaire();
+        existingQuestionnaire.setTitle("Existing Questionnaire");
+        existingQuestionnaire.setDescription("Existing Questionnaire description");
+        existingQuestionnaire.setUser(owner);
+        entityManager.persist(existingQuestionnaire);
+
+        EditQuestionnaireDetailsRequest request = new EditQuestionnaireDetailsRequest(existingQuestionnaire.getTitle(), null);
+
+        assertThrows(EntityInvalidArgumentException.class, () -> questionnaireService.editQuestionnaireDetails(request, questionnaire.getUuid(), owner.getEmail()));
+    }
+
+    @Test
+    void editQuestionnaireDetailsTitleLessThan3Chars() {
+        EditQuestionnaireDetailsRequest request = new EditQuestionnaireDetailsRequest("ab", null);
+
+        assertThrows(EntityInvalidArgumentException.class, () -> questionnaireService.editQuestionnaireDetails(request, questionnaire.getUuid(), owner.getEmail()));
+    }
+
+    @Test
+    void editQuestionnaireDetailsDescriptionLessThan5Chars() {
+        EditQuestionnaireDetailsRequest request = new EditQuestionnaireDetailsRequest(null, "abcd");
+
+        assertThrows(EntityInvalidArgumentException.class, () -> questionnaireService.editQuestionnaireDetails(request, questionnaire.getUuid(), owner.getEmail()));
+    }
+
+    @Test
+    void editQuestionnaireDetailsOnlyTitleSuccess() throws EntityInvalidArgumentException, EntityNotFoundException {
+        EditQuestionnaireDetailsRequest request = new EditQuestionnaireDetailsRequest("New Title", null);
+
+        QuestionnaireDetailsDTO result = questionnaireService.editQuestionnaireDetails(request, questionnaire.getUuid(), owner.getEmail());
+        Questionnaire saved = questionnaireRepository.findByUuid(questionnaire.getUuid()).orElseThrow();
+
+        assertThat(saved.getTitle()).isEqualTo(request.title());
+        assertThat(saved.getDescription()).isEqualTo("Sample Questionnaire description");
+
+        assertThat(result.uuid()).isEqualTo(saved.getUuid());
+        assertThat(result.title()).isEqualTo(saved.getTitle());
+        assertThat(result.description()).isEqualTo(saved.getDescription());
+    }
+
+    @Test
+    void editQuestionnaireDetailsOnlyDescriptionSuccess() throws EntityInvalidArgumentException, EntityNotFoundException {
+        EditQuestionnaireDetailsRequest request = new EditQuestionnaireDetailsRequest(null, "New Questionnaire description");
+
+        QuestionnaireDetailsDTO result = questionnaireService.editQuestionnaireDetails(request, questionnaire.getUuid(), owner.getEmail());
+        Questionnaire saved = questionnaireRepository.findByUuid(questionnaire.getUuid()).orElseThrow();
+
+        assertThat(saved.getTitle()).isEqualTo("Sample Questionnaire");
+        assertThat(saved.getDescription()).isEqualTo(request.description());
+
+        assertThat(result.uuid()).isEqualTo(saved.getUuid());
+        assertThat(result.title()).isEqualTo(saved.getTitle());
+        assertThat(result.description()).isEqualTo(saved.getDescription());
+    }
+
+    @Test
+    void editQuestionnaireDetailsTitleAndDescriptionSuccess() throws EntityInvalidArgumentException, EntityNotFoundException {
+        EditQuestionnaireDetailsRequest request = new EditQuestionnaireDetailsRequest("New Title", "New Questionnaire description");
+
+        QuestionnaireDetailsDTO result = questionnaireService.editQuestionnaireDetails(request, questionnaire.getUuid(), owner.getEmail());
+        Questionnaire saved = questionnaireRepository.findByUuid(questionnaire.getUuid()).orElseThrow();
+
+        assertThat(saved.getTitle()).isEqualTo(request.title());
+        assertThat(saved.getDescription()).isEqualTo(request.description());
+
+        assertThat(result.uuid()).isEqualTo(saved.getUuid());
+        assertThat(result.title()).isEqualTo(saved.getTitle());
+        assertThat(result.description()).isEqualTo(saved.getDescription());
     }
 }
