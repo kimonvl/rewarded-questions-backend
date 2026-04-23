@@ -72,6 +72,7 @@ public class QuestionServiceImpl implements QuestionService{
     }
 
     @Override
+    @PreAuthorize("hasAuthority('EDIT_QUESTION')")
     @Transactional(rollbackFor = {EntityInvalidArgumentException.class, EntityNotFoundException.class})
     public List<QuestionDTO> reorderQuestions(
             ReorderQuestionsRequest request, UUID questionnaireId, String email
@@ -102,7 +103,6 @@ public class QuestionServiceImpl implements QuestionService{
             List<Question> savedQuestions = questionRepository.saveAll(questionnaire.getAllQuestions());
 
             log.info("Questions reordered successfully by user with email={} for questionnaire with id={}", email, questionnaireId);
-            // TODO: fix lazy loading of possible choices
             return savedQuestions.stream()
                     .map(questionMapper::toDto)
                     .sorted(Comparator.comparing(QuestionDTO::order))
