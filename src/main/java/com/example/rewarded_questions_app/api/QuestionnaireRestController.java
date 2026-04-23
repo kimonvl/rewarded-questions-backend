@@ -132,7 +132,7 @@ public class QuestionnaireRestController {
     public ResponseEntity<@NonNull GenericResponse<UUID>> deleteQuestionnaire(
             Principal principal,
             @PathVariable UUID id
-    ) {
+    ) throws EntityInvalidArgumentException, EntityNotFoundException {
         return new ResponseEntity<>(
                 new GenericResponse<>(
                         questionnaireService.deleteQuestionnaire(id, principal.getName()),

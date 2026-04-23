@@ -7,8 +7,10 @@ import com.example.rewarded_questions_app.dto.response.QuestionnaireWithQuestion
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
 import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
 import com.example.rewarded_questions_app.mapper.QuestionnaireMapper;
+import com.example.rewarded_questions_app.model.questionnaire.Question;
 import com.example.rewarded_questions_app.model.questionnaire.Questionnaire;
 import com.example.rewarded_questions_app.model.user.User;
+import com.example.rewarded_questions_app.repository.QuestionRepository;
 import com.example.rewarded_questions_app.repository.QuestionnaireRepository;
 import com.example.rewarded_questions_app.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,7 @@ public class QuestionnaireServiceImpl implements QuestionnaireService{
     private final QuestionnaireRepository questionnaireRepository;
 
     private final QuestionnaireMapper questionnaireMapper;
+    private final QuestionRepository questionRepository;
 
     @Override
     @PreAuthorize("hasAuthority('CREATE_QUESTIONNAIRE')")
@@ -93,6 +96,32 @@ public class QuestionnaireServiceImpl implements QuestionnaireService{
             return questionnaireDetailsDTO;
         } catch (EntityNotFoundException | EntityInvalidArgumentException e) {
             log.warn("Questionnaire details edit failed. Message={}", e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    @PreAuthorize("hasAuthority('DELETE_QUESTIONNAIRE')")
+    @Transactional(rollbackFor = {EntityNotFoundException.class, EntityInvalidArgumentException.class})
+    public UUID deleteQuestionnaire(UUID questionnaireId, String email) throws EntityNotFoundException, EntityInvalidArgumentException {
+        try {
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new EntityNotFoundException("DeleteQuestionnaireUser", "User with email=" + email + " not found"));
+            Questionnaire questionnaire = questionnaireRepository.findWithQuestionsByUuidAndDeletedFalse(questionnaireId)
+                    .orElseThrow(() -> new EntityNotFoundException("DeleteQuestionnaireQuestionnaire", "Questionnaire with id=" + questionnaireId + " not found"));
+            if (!questionnaire.getUser().equals(user)) {
+                throw new EntityInvalidArgumentException("DeleteQuestionnaireUserQuestionnaire", "User with email=" + email + " is not the owner of the questionnaire with id=" + questionnaireId);
+            }
+
+            for (Question question : questionnaire.getAllQuestions()) {
+                question.softDelete();
+            }
+            questionnaire.softDelete();
+            questionnaireRepository.save(questionnaire);
+            log.info("Questionnaire with id={} deleted successfully by user with email={}", questionnaireId, email);
+            return questionnaire.getUuid();
+        } catch (EntityNotFoundException | EntityInvalidArgumentException e) {
+            log.warn("Questionnaire deletion failed. Message={}", e.getMessage());
             throw e;
         }
     }
