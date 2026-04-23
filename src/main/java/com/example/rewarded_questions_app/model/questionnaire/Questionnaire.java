@@ -4,6 +4,7 @@ import com.example.rewarded_questions_app.model.AbstractEntity;
 import com.example.rewarded_questions_app.model.user.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -46,6 +47,7 @@ public class Questionnaire extends AbstractEntity {
     @Setter(AccessLevel.PRIVATE)
     @OneToMany(mappedBy = "questionnaire", fetch = FetchType.LAZY,
             cascade = CascadeType.ALL, orphanRemoval = true)
+    @SQLRestriction("deleted = false")
     private Set<Question> questions = new HashSet<>();
 
     public Set<Question> getAllQuestions() {
