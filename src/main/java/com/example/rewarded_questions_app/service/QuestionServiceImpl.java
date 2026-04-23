@@ -116,7 +116,7 @@ public class QuestionServiceImpl implements QuestionService{
 
     @Override
     public boolean existsByTextAndQuestionnaireId(String text, Long questionnaireId) {
-        return questionRepository.existsByTextAndQuestionnaireId(text, questionnaireId);
+        return questionRepository.existsByTextAndQuestionnaireIdAndDeletedFalse(text, questionnaireId);
     }
 
     private static void validateCreateQuestionRequest(CreateQuestionRequest request) throws EntityInvalidArgumentException {

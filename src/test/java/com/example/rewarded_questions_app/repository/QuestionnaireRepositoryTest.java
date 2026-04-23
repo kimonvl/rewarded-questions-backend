@@ -66,6 +66,15 @@ class QuestionnaireRepositoryTest {
         question.addPossibleChoice(possibleChoice);
         questionnaire.addQuestion(question);
 
+        Question deletedQuestion = new Question();
+        deletedQuestion.setText("Deleted question?");
+        deletedQuestion.setIsFreeText(true);
+        deletedQuestion.setSelectMin(0L);
+        deletedQuestion.setSelectMax(0L);
+        deletedQuestion.setOrder(1L);
+        deletedQuestion.softDelete();
+        questionnaire.addQuestion(deletedQuestion);
+
         Questionnaire deletedQuestionnaire = new Questionnaire();
         deletedQuestionnaire.setTitle("Deleted Questionnaire");
         deletedQuestionnaire.setDescription("Deleted Questionnaire description");
@@ -159,6 +168,8 @@ class QuestionnaireRepositoryTest {
         assertThat(foundQuestionnaire.isDeleted()).isFalse();
         assertThat(persistenceUnitUtil.isLoaded(foundQuestionnaire, "questions")).isTrue();
         assertThat(foundQuestionnaire.getAllQuestions()).hasSize(1);
+        assertThat(foundQuestion.getText()).isEqualTo("Sample question?");
+        assertThat(foundQuestion.isDeleted()).isFalse();
         assertThat(persistenceUnitUtil.isLoaded(foundQuestion, "possibleChoices")).isTrue();
         assertThat(foundQuestion.getAllPossibleChoices()).hasSize(1);
     }

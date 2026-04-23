@@ -53,6 +53,13 @@ class QuestionRepositoryTest {
         question.setOrder(0L);
         questionnaire.addQuestion(question);
 
+        Question deletedQuestion = new Question();
+        deletedQuestion.setText("Deleted question?");
+        deletedQuestion.setIsFreeText(true);
+        deletedQuestion.setOrder(1L);
+        deletedQuestion.softDelete();
+        questionnaire.addQuestion(deletedQuestion);
+
         entityManager.persist(adminRole);
         entityManager.persist(owner);
         entityManager.persist(questionnaire);
@@ -60,8 +67,8 @@ class QuestionRepositoryTest {
     }
 
     @Test
-    void existsByTextAndQuestionnaireIdSameTextDifferentQuestionnaireReturnsFalse() {
-        boolean exists = questionRepository.existsByTextAndQuestionnaireId(
+    void existsByTextAndQuestionnaireIdAndDeletedFalseSameTextDifferentQuestionnaireReturnsFalse() {
+        boolean exists = questionRepository.existsByTextAndQuestionnaireIdAndDeletedFalse(
                 "Sample question?",
                 questionnaire.getId() + 1
         );
@@ -70,8 +77,8 @@ class QuestionRepositoryTest {
     }
 
     @Test
-    void existsByTextAndQuestionnaireIdSameQuestionnaireDifferentTextReturnsFalse() {
-        boolean exists = questionRepository.existsByTextAndQuestionnaireId(
+    void existsByTextAndQuestionnaireIdAndDeletedFalseSameQuestionnaireDifferentTextReturnsFalse() {
+        boolean exists = questionRepository.existsByTextAndQuestionnaireIdAndDeletedFalse(
                 "Different question?",
                 questionnaire.getId()
         );
@@ -80,12 +87,22 @@ class QuestionRepositoryTest {
     }
 
     @Test
-    void existsByTextAndQuestionnaireIdSameQuestionnaireSameTextReturnsTrue() {
-        boolean exists = questionRepository.existsByTextAndQuestionnaireId(
+    void existsByTextAndQuestionnaireIdAndDeletedFalseSameQuestionnaireSameTextReturnsTrue() {
+        boolean exists = questionRepository.existsByTextAndQuestionnaireIdAndDeletedFalse(
                 "Sample question?",
                 questionnaire.getId()
         );
 
         assertThat(exists).isTrue();
+    }
+
+    @Test
+    void existsByTextAndQuestionnaireIdAndDeletedFalseDeletedQuestionReturnsFalse() {
+        boolean exists = questionRepository.existsByTextAndQuestionnaireIdAndDeletedFalse(
+                "Deleted question?",
+                questionnaire.getId()
+        );
+
+        assertThat(exists).isFalse();
     }
 }
