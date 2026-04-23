@@ -55,7 +55,8 @@ public class QuestionnaireRestController {
                         "Questionnaire created successfully",
                         true
                 ),
-                HttpStatus.CREATED);
+                HttpStatus.CREATED
+        );
     }
 
     @PostMapping("/{id}/questions")
@@ -77,7 +78,8 @@ public class QuestionnaireRestController {
                         "Question created successfully",
                         true
                 ),
-                HttpStatus.CREATED);
+                HttpStatus.CREATED
+        );
     }
 
     @PatchMapping("/{id}/questions/order")
@@ -99,8 +101,10 @@ public class QuestionnaireRestController {
                         "Questions reordered successfully",
                         true
                 ),
-                HttpStatus.OK);
+                HttpStatus.OK
+        );
     }
+
     @PatchMapping("/{id}")
     public ResponseEntity<@NonNull GenericResponse<QuestionnaireDetailsDTO>> editQuestionnaireDetails(
             @Valid @RequestBody EditQuestionnaireDetailsRequest req,
@@ -120,6 +124,23 @@ public class QuestionnaireRestController {
                         "Questionnaire details edited successfully",
                         true
                 ),
-                HttpStatus.OK);
+                HttpStatus.OK
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<@NonNull GenericResponse<UUID>> deleteQuestionnaire(
+            Principal principal,
+            @PathVariable UUID id
+    ) {
+        return new ResponseEntity<>(
+                new GenericResponse<>(
+                        questionnaireService.deleteQuestionnaire(id, principal.getName()),
+                        "DeleteQuestionnaireSucceeded",
+                        "Questionnaire deleted successfully",
+                        true
+                ),
+                HttpStatus.NO_CONTENT
+        );
     }
 }
