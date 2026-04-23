@@ -6,6 +6,7 @@ import com.example.rewarded_questions_app.dto.response.QuestionnaireDetailsDTO;
 import com.example.rewarded_questions_app.dto.response.QuestionnaireWithQuestionsDTO;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
 import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
+import com.example.rewarded_questions_app.model.questionnaire.Question;
 import com.example.rewarded_questions_app.model.questionnaire.Questionnaire;
 import com.example.rewarded_questions_app.model.user.Capability;
 import com.example.rewarded_questions_app.model.user.Role;
@@ -31,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @Transactional
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@WithMockUser(authorities = {"CREATE_QUESTIONNAIRE", "EDIT_QUESTIONNAIRE"})
+@WithMockUser(authorities = {"CREATE_QUESTIONNAIRE", "EDIT_QUESTIONNAIRE", "DELETE_QUESTIONNAIRE"})
 class QuestionnaireServiceImplTest {
 
     @Autowired
@@ -64,6 +65,12 @@ class QuestionnaireServiceImplTest {
         questionnaire.setTitle("Sample Questionnaire");
         questionnaire.setDescription("Sample Questionnaire description");
         questionnaire.setUser(owner);
+
+        Question question = new Question();
+        question.setText("Sample question?");
+        question.setIsFreeText(true);
+        question.setOrder(0L);
+        questionnaire.addQuestion(question);
 
         entityManager.persist(adminRole);
         entityManager.persist(owner);
@@ -223,5 +230,58 @@ class QuestionnaireServiceImplTest {
         assertThat(result.uuid()).isEqualTo(saved.getUuid());
         assertThat(result.title()).isEqualTo(saved.getTitle());
         assertThat(result.description()).isEqualTo(saved.getDescription());
+    }
+
+    @Test
+    void deleteQuestionnaireUserNotFound() {
+        assertThrows(EntityNotFoundException.class, () -> questionnaireService.deleteQuestionnaire(questionnaire.getUuid(), "missing@example.com"));
+    }
+
+    @Test
+    void deleteQuestionnaireQuestionnaireNotFound() {
+        assertThrows(EntityNotFoundException.class, () -> questionnaireService.deleteQuestionnaire(java.util.UUID.randomUUID(), owner.getEmail()));
+    }
+
+    @Test
+    void deleteQuestionnaireUserNotOwner() {
+        User otherUser = new User();
+        otherUser.setEmail("other@example.com");
+        otherUser.setPassword("password");
+        otherUser.setOrganization("Other Org");
+        owner.getRole().addUser(otherUser);
+        entityManager.persist(otherUser);
+
+        assertThrows(EntityInvalidArgumentException.class, () -> questionnaireService.deleteQuestionnaire(questionnaire.getUuid(), otherUser.getEmail()));
+    }
+
+    @Test
+    void deleteQuestionnaireSuccess() throws EntityInvalidArgumentException, EntityNotFoundException {
+        java.util.UUID deletedUuid = questionnaireService.deleteQuestionnaire(questionnaire.getUuid(), owner.getEmail());
+        entityManager.flush();
+        entityManager.clear();
+
+        Questionnaire deletedQuestionnaire = entityManager.createQuery(
+                        "select q from Questionnaire q where q.uuid = :uuid",
+                        Questionnaire.class
+                )
+                .setParameter("uuid", deletedUuid)
+                .getSingleResult();
+        var deletedQuestions = entityManager.createQuery(
+                        "select q from Question q where q.questionnaire.uuid = :uuid",
+                        Question.class
+                )
+                .setParameter("uuid", deletedUuid)
+                .getResultList();
+
+        assertThat(deletedQuestionnaire.isDeleted()).isTrue();
+        assertThat(deletedQuestionnaire.getDeletedAt()).isNotNull();
+        assertThat(questionnaireRepository.findByUuidAndDeletedFalse(deletedUuid)).isEmpty();
+
+        assertThat(deletedQuestions).hasSize(1);
+        assertThat(deletedQuestions)
+                .allSatisfy(question -> {
+                    assertThat(question.isDeleted()).isTrue();
+                    assertThat(question.getDeletedAt()).isNotNull();
+                });
     }
 }
