@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Transactional
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@WithMockUser(authorities = "CREATE_QUESTION")
+@WithMockUser(authorities = {"CREATE_QUESTION", "EDIT_QUESTION"})
 class QuestionServiceImplTest {
     @Autowired
     private QuestionService questionService;
