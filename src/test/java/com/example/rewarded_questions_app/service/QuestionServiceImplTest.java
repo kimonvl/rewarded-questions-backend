@@ -2,10 +2,13 @@ package com.example.rewarded_questions_app.service;
 
 import com.example.rewarded_questions_app.dto.request.CreatePossibleChoiceRequest;
 import com.example.rewarded_questions_app.dto.request.CreateQuestionRequest;
+import com.example.rewarded_questions_app.dto.request.EditPossibleChoiceRequest;
+import com.example.rewarded_questions_app.dto.request.EditQuestionRequest;
 import com.example.rewarded_questions_app.dto.request.ReorderQuestionsRequest;
 import com.example.rewarded_questions_app.dto.response.QuestionDTO;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
 import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
+import com.example.rewarded_questions_app.model.questionnaire.PossibleChoice;
 import com.example.rewarded_questions_app.model.questionnaire.Question;
 import com.example.rewarded_questions_app.model.questionnaire.Questionnaire;
 import com.example.rewarded_questions_app.model.user.Capability;
@@ -52,6 +55,10 @@ class QuestionServiceImplTest {
     private UUID firstQuestionUuid;
     private UUID secondQuestionUuid;
     private UUID thirdQuestionUuid;
+    private UUID multipleChoiceQuestionUuid;
+    private UUID firstChoiceUuid;
+    private UUID secondChoiceUuid;
+    private UUID thirdChoiceUuid;
     private UUID otherQuestionUuid;
 
     @BeforeEach
@@ -84,12 +91,22 @@ class QuestionServiceImplTest {
         Question firstQuestion = createFreeTextQuestion("Existing question?", 0L);
         Question secondQuestion = createFreeTextQuestion("Second question?", 1L);
         Question thirdQuestion = createFreeTextQuestion("Third question?", 2L);
+        Question multipleChoiceQuestion = createMultipleChoiceQuestion("Favorite color?", 3L,
+                "Red", "Green", "Blue");
         questionnaire.addQuestion(firstQuestion);
         questionnaire.addQuestion(secondQuestion);
         questionnaire.addQuestion(thirdQuestion);
+        questionnaire.addQuestion(multipleChoiceQuestion);
         firstQuestionUuid = firstQuestion.getUuid();
         secondQuestionUuid = secondQuestion.getUuid();
         thirdQuestionUuid = thirdQuestion.getUuid();
+        multipleChoiceQuestionUuid = multipleChoiceQuestion.getUuid();
+        List<PossibleChoice> multipleChoiceQuestionChoices = multipleChoiceQuestion.getAllPossibleChoices().stream()
+                .sorted(Comparator.comparing(PossibleChoice::getOrder))
+                .toList();
+        firstChoiceUuid = multipleChoiceQuestionChoices.get(0).getUuid();
+        secondChoiceUuid = multipleChoiceQuestionChoices.get(1).getUuid();
+        thirdChoiceUuid = multipleChoiceQuestionChoices.get(2).getUuid();
 
         Questionnaire otherQuestionnaire = new Questionnaire();
         otherQuestionnaire.setTitle("Other Questionnaire");
@@ -311,11 +328,11 @@ class QuestionServiceImplTest {
 
     @Test
     void reorderQuestionsSuccess() throws EntityInvalidArgumentException, EntityNotFoundException {
-        ReorderQuestionsRequest request = reorderRequest(thirdQuestionUuid, firstQuestionUuid, secondQuestionUuid);
+        ReorderQuestionsRequest request = reorderRequest(thirdQuestionUuid, multipleChoiceQuestionUuid, firstQuestionUuid, secondQuestionUuid);
 
         List<QuestionDTO> reorderedQuestions = questionService.reorderQuestions(request, questionnaire.getUuid(), owner.getEmail());
 
-        assertEquals(List.of(thirdQuestionUuid, firstQuestionUuid, secondQuestionUuid),
+        assertEquals(List.of(thirdQuestionUuid, multipleChoiceQuestionUuid, firstQuestionUuid, secondQuestionUuid),
                 reorderedQuestions.stream().map(QuestionDTO::uuid).toList());
 
         entityManager.flush();
@@ -326,15 +343,251 @@ class QuestionServiceImplTest {
                 .sorted(Comparator.comparing(Question::getOrder))
                 .toList();
 
-        assertEquals(List.of(thirdQuestionUuid, firstQuestionUuid, secondQuestionUuid),
+        assertEquals(List.of(thirdQuestionUuid, multipleChoiceQuestionUuid, firstQuestionUuid, secondQuestionUuid),
                 savedQuestions.stream().map(Question::getUuid).toList());
-        assertEquals(List.of(thirdQuestionUuid, firstQuestionUuid, secondQuestionUuid),
+        assertEquals(List.of(thirdQuestionUuid, multipleChoiceQuestionUuid, firstQuestionUuid, secondQuestionUuid),
                 reorderedQuestions.stream().map(QuestionDTO::uuid).toList());
-        assertEquals(List.of(0L, 1L, 2L), savedQuestions.stream().map(Question::getOrder).toList());
+        assertEquals(List.of(0L, 1L, 2L, 3L), savedQuestions.stream().map(Question::getOrder).toList());
+    }
+
+    @Test
+    void editQuestionUserInvalidEmail() {
+        EditQuestionRequest request = freeTextEditRequest("Edited question text");
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> questionService.editQuestion(request, firstQuestionUuid, "missing@email.com"));
+        assertEquals("EditQuestionUserNotFound", exception.getCode());
+    }
+
+    @Test
+    void editQuestionQuestionInvalidId() {
+        EditQuestionRequest request = freeTextEditRequest("Edited question text");
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> questionService.editQuestion(request, UUID.randomUUID(), owner.getEmail()));
+        assertEquals("EditQuestionQuestionNotFound", exception.getCode());
+    }
+
+    @Test
+    void editQuestionUserNotOwner() {
+        EditQuestionRequest request = freeTextEditRequest("Edited question text");
+        EntityInvalidArgumentException exception = assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.editQuestion(request, firstQuestionUuid, otherOwner.getEmail()));
+        assertEquals("EditQuestionQuestionUserInvalidArgument", exception.getCode());
+    }
+
+    @Test
+    void editQuestionTextEmpty() {
+        EditQuestionRequest request = freeTextEditRequest("");
+        EntityInvalidArgumentException exception = assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.editQuestion(request, firstQuestionUuid, owner.getEmail()));
+        assertEquals("EditQuestionTextEmptyInvalidArgument", exception.getCode());
+    }
+
+    @Test
+    void editQuestionTextInvalidLength() {
+        EditQuestionRequest request = freeTextEditRequest("abcd");
+        EntityInvalidArgumentException exception = assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.editQuestion(request, firstQuestionUuid, owner.getEmail()));
+        assertEquals("EditQuestionTextLengthInvalidArgument", exception.getCode());
+    }
+
+    @Test
+    void editQuestionFreeTextSelectMinProvided() {
+        EditQuestionRequest request = new EditQuestionRequest("Edited question text", 1L, null, null);
+        EntityInvalidArgumentException exception = assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.editQuestion(request, firstQuestionUuid, owner.getEmail()));
+        assertEquals("EditQuestionFTRequestInvalidArgument", exception.getCode());
+    }
+
+    @Test
+    void editQuestionFreeTextSuccess() throws EntityInvalidArgumentException, EntityNotFoundException {
+        EditQuestionRequest request = freeTextEditRequest("Edited free text question");
+
+        QuestionDTO result = questionService.editQuestion(request, firstQuestionUuid, owner.getEmail());
+
+        assertEquals(firstQuestionUuid, result.uuid());
+        assertEquals("Edited free text question", result.text());
+        assertTrue(result.isFreeText());
+        assertEquals(0L, result.selectMin());
+        assertEquals(0L, result.selectMax());
+        assertTrue(result.possibleChoices().isEmpty());
+
+        entityManager.flush();
+        entityManager.clear();
+
+        Question savedQuestion = questionRepository.findByUuidAndDeletedFalse(firstQuestionUuid).orElseThrow();
+        assertEquals("Edited free text question", savedQuestion.getText());
+        assertTrue(savedQuestion.getIsFreeText());
+        assertEquals(0L, savedQuestion.getSelectMin());
+        assertEquals(0L, savedQuestion.getSelectMax());
+        assertTrue(savedQuestion.getAllPossibleChoices().isEmpty());
+    }
+
+    @Test
+    void editQuestionMultipleChoicePossibleChoicesInvalidSize() {
+        EditQuestionRequest request = new EditQuestionRequest(
+                "Edited multiple choice question",
+                1L,
+                1L,
+                List.of(new EditPossibleChoiceRequest(firstChoiceUuid, "Red edited"))
+        );
+        EntityInvalidArgumentException exception = assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.editQuestion(request, multipleChoiceQuestionUuid, owner.getEmail()));
+        assertEquals("EditQuestionMCChoicesSizeInvalidArgument", exception.getCode());
+    }
+
+    @Test
+    void editQuestionMultipleChoiceSelectMinNull() {
+        EditQuestionRequest request = new EditQuestionRequest(
+                "Edited multiple choice question",
+                null,
+                2L,
+                List.of(
+                        new EditPossibleChoiceRequest(firstChoiceUuid, "Red edited"),
+                        new EditPossibleChoiceRequest(secondChoiceUuid, "Green edited")
+                )
+        );
+        EntityInvalidArgumentException exception = assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.editQuestion(request, multipleChoiceQuestionUuid, owner.getEmail()));
+        assertEquals("EditQuestionMCSelectMinMaxNullInvalidArgument", exception.getCode());
+    }
+
+    @Test
+    void editQuestionMultipleChoiceSelectMinGreaterThanSelectMax() {
+        EditQuestionRequest request = new EditQuestionRequest(
+                "Edited multiple choice question",
+                3L,
+                2L,
+                List.of(
+                        new EditPossibleChoiceRequest(firstChoiceUuid, "Red edited"),
+                        new EditPossibleChoiceRequest(secondChoiceUuid, "Green edited"),
+                        new EditPossibleChoiceRequest(thirdChoiceUuid, "Blue edited")
+                )
+        );
+        EntityInvalidArgumentException exception = assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.editQuestion(request, multipleChoiceQuestionUuid, owner.getEmail()));
+        assertEquals("EditQuestionMCSelectMinInvalidArgument", exception.getCode());
+    }
+
+    @Test
+    void editQuestionMultipleChoiceSelectMaxGreaterThanChoicesSize() {
+        EditQuestionRequest request = new EditQuestionRequest(
+                "Edited multiple choice question",
+                1L,
+                4L,
+                List.of(
+                        new EditPossibleChoiceRequest(firstChoiceUuid, "Red edited"),
+                        new EditPossibleChoiceRequest(secondChoiceUuid, "Green edited"),
+                        new EditPossibleChoiceRequest(thirdChoiceUuid, "Blue edited")
+                )
+        );
+        EntityInvalidArgumentException exception = assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.editQuestion(request, multipleChoiceQuestionUuid, owner.getEmail()));
+        assertEquals("EditQuestionMCSelectMaxInvalidArgument", exception.getCode());
+    }
+
+    @Test
+    void editQuestionMultipleChoicePossibleChoiceTextBlank() {
+        EditQuestionRequest request = new EditQuestionRequest(
+                "Edited multiple choice question",
+                1L,
+                2L,
+                List.of(
+                        new EditPossibleChoiceRequest(firstChoiceUuid, "Red edited"),
+                        new EditPossibleChoiceRequest(secondChoiceUuid, ""),
+                        new EditPossibleChoiceRequest(thirdChoiceUuid, "Blue edited")
+                )
+        );
+        EntityInvalidArgumentException exception = assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.editQuestion(request, multipleChoiceQuestionUuid, owner.getEmail()));
+        assertEquals("EditQuestionMCChoiceTextBlankInvalidArgument", exception.getCode());
+    }
+
+    @Test
+    void editQuestionMultipleChoicePossibleChoiceDuplicateUuid() {
+        EditQuestionRequest request = new EditQuestionRequest(
+                "Edited multiple choice question",
+                1L,
+                2L,
+                List.of(
+                        new EditPossibleChoiceRequest(firstChoiceUuid, "Red edited"),
+                        new EditPossibleChoiceRequest(firstChoiceUuid, "Green edited"),
+                        new EditPossibleChoiceRequest(thirdChoiceUuid, "Blue edited")
+                )
+        );
+        EntityInvalidArgumentException exception = assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.editQuestion(request, multipleChoiceQuestionUuid, owner.getEmail()));
+        assertEquals("EditQuestionMCChoiceUUIDDuplicateInvalidArgument", exception.getCode());
+    }
+
+    @Test
+    void editQuestionMultipleChoicePossibleChoiceDuplicateText() {
+        EditQuestionRequest request = new EditQuestionRequest(
+                "Edited multiple choice question",
+                1L,
+                2L,
+                List.of(
+                        new EditPossibleChoiceRequest(firstChoiceUuid, "Same text"),
+                        new EditPossibleChoiceRequest(secondChoiceUuid, "Same text"),
+                        new EditPossibleChoiceRequest(thirdChoiceUuid, "Different text")
+                )
+        );
+        EntityInvalidArgumentException exception = assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.editQuestion(request, multipleChoiceQuestionUuid, owner.getEmail()));
+        assertEquals("EditQuestionMCChoiceTextDuplicateInvalidArgument", exception.getCode());
+    }
+
+    @Test
+    void editQuestionMultipleChoiceSuccess() throws EntityInvalidArgumentException, EntityNotFoundException {
+        EditQuestionRequest request = new EditQuestionRequest(
+                "Edited multiple choice question",
+                1L,
+                2L,
+                List.of(
+                        new EditPossibleChoiceRequest(secondChoiceUuid, "Green updated"),
+                        new EditPossibleChoiceRequest(firstChoiceUuid, "Red updated"),
+                        new EditPossibleChoiceRequest(null, "Yellow")
+                )
+        );
+
+        QuestionDTO result = questionService.editQuestion(request, multipleChoiceQuestionUuid, owner.getEmail());
+
+        assertEquals(multipleChoiceQuestionUuid, result.uuid());
+        assertEquals("Edited multiple choice question", result.text());
+        assertFalse(result.isFreeText());
+        assertEquals(1L, result.selectMin());
+        assertEquals(2L, result.selectMax());
+        assertEquals(3, result.possibleChoices().size());
+        assertEquals(List.of("Green updated", "Red updated", "Yellow"),
+                result.possibleChoices().stream().map(choice -> choice.text()).toList());
+
+        entityManager.flush();
+        entityManager.clear();
+
+        Question savedQuestion = questionRepository.findByUuidAndDeletedFalse(multipleChoiceQuestionUuid).orElseThrow();
+        List<PossibleChoice> savedChoices = savedQuestion.getAllPossibleChoices().stream()
+                .sorted(Comparator.comparing(PossibleChoice::getOrder))
+                .toList();
+
+        assertEquals("Edited multiple choice question", savedQuestion.getText());
+        assertFalse(savedQuestion.getIsFreeText());
+        assertEquals(1L, savedQuestion.getSelectMin());
+        assertEquals(2L, savedQuestion.getSelectMax());
+        assertEquals(3, savedChoices.size());
+        assertEquals(List.of(secondChoiceUuid, firstChoiceUuid),
+                savedChoices.stream().limit(2).map(PossibleChoice::getUuid).toList());
+        assertEquals(List.of("Green updated", "Red updated", "Yellow"),
+                savedChoices.stream().map(PossibleChoice::getText).toList());
+        assertEquals(List.of(0L, 1L, 2L),
+                savedChoices.stream().map(PossibleChoice::getOrder).toList());
+        assertFalse(savedChoices.stream().map(PossibleChoice::getUuid).toList().contains(thirdChoiceUuid));
     }
 
     private static CreateQuestionRequest freeTextRequest(String text) {
         return new CreateQuestionRequest(text, true, 0L, 0L, List.of());
+    }
+
+    private static EditQuestionRequest freeTextEditRequest(String text) {
+        return new EditQuestionRequest(text, null, null, null);
     }
 
     private static ReorderQuestionsRequest reorderRequest(UUID... questionUuids) {
@@ -348,6 +601,22 @@ class QuestionServiceImplTest {
         question.setSelectMin(0L);
         question.setSelectMax(0L);
         question.setOrder(order);
+        return question;
+    }
+
+    private static Question createMultipleChoiceQuestion(String text, Long order, String... choices) {
+        Question question = new Question();
+        question.setText(text);
+        question.setIsFreeText(false);
+        question.setSelectMin(1L);
+        question.setSelectMax(2L);
+        question.setOrder(order);
+        for (int i = 0; i < choices.length; i++) {
+            PossibleChoice possibleChoice = new PossibleChoice();
+            possibleChoice.setText(choices[i]);
+            possibleChoice.setOrder((long) i);
+            question.addPossibleChoice(possibleChoice);
+        }
         return question;
     }
     
