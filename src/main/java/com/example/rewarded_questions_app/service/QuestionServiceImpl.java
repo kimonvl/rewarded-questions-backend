@@ -1,13 +1,12 @@
 package com.example.rewarded_questions_app.service;
 
-import com.example.rewarded_questions_app.dto.request.CreatePossibleChoiceRequest;
-import com.example.rewarded_questions_app.dto.request.CreateQuestionRequest;
-import com.example.rewarded_questions_app.dto.request.ReorderQuestionsRequest;
+import com.example.rewarded_questions_app.dto.request.*;
 import com.example.rewarded_questions_app.dto.response.QuestionDTO;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
 import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
 import com.example.rewarded_questions_app.mapper.PossibleChoiceMapper;
 import com.example.rewarded_questions_app.mapper.QuestionMapper;
+import com.example.rewarded_questions_app.model.questionnaire.PossibleChoice;
 import com.example.rewarded_questions_app.model.questionnaire.Question;
 import com.example.rewarded_questions_app.model.questionnaire.Questionnaire;
 import com.example.rewarded_questions_app.model.user.User;
@@ -16,19 +15,20 @@ import com.example.rewarded_questions_app.repository.QuestionnaireRepository;
 import com.example.rewarded_questions_app.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
 @Service
 public class QuestionServiceImpl implements QuestionService{
+
+    private final PossibleChoiceService possibleChoiceService;
 
     private final UserRepository userRepository;
     private final QuestionnaireRepository questionnaireRepository;
@@ -112,6 +112,112 @@ public class QuestionServiceImpl implements QuestionService{
             throw e;
         }
 
+    }
+
+    @Override
+    @PreAuthorize("hasAuthority('EDIT_QUESTION')")
+    @Transactional(rollbackFor = {EntityNotFoundException.class, EntityInvalidArgumentException.class})
+    public QuestionDTO editQuestion(
+            EditQuestionRequest request, UUID questionId, String email
+    ) throws EntityNotFoundException, EntityInvalidArgumentException {
+        // TODO: Define 2 edit paths depending on the type of question.
+        // TODO: Validation of request will happen in each path.
+        // TODO: Validation of possible choices in this service and then delegate the possible choice edit to the Possible Choice Service.
+
+        try {
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new EntityNotFoundException("EditQuestionUser", "User with email=" + email + " not found"));
+            Question question = questionRepository.findByUuidAndDeletedFalse(questionId)
+                    .orElseThrow(() -> new EntityNotFoundException("EditQuestionQuestion", "Question with id=" + questionId + " not found"));
+            if (!question.getQuestionnaire().getUser().equals(user)) {
+                throw new EntityInvalidArgumentException("EditQuestionQuestionUser", "Question with id=" + questionId + " does not belong to user with email=" + email);
+            }
+            if (request.text() == null || request.text().isEmpty()) {
+                throw new EntityInvalidArgumentException("EditQuestionTextEmpty", "Question text cannot be blank.");
+            }
+            if (request.text().length() < 5 || request.text().length() > 200) {
+                throw new EntityInvalidArgumentException("EditQuestionTextLength", "Question text must be between 5 and 200 characters.");
+            }
+
+            if (question.getIsFreeText()) {
+                handleEditFreeTextQuestion(request, question);
+            } else {
+                handleEditMultipleChoiceQuestion(request, question);
+            }
+
+            questionRepository.save(question);
+            QuestionDTO result = questionMapper.toDto(question);
+
+            log.info("Edit question succeeded by user with email={} for question with id={}", email, questionId);
+            return result;
+        } catch (EntityNotFoundException | EntityInvalidArgumentException e) {
+            log.warn("Edit question failed, by user with email={} for question with id={}. Message={}", email, questionId, e.getMessage());
+            throw e;
+        }
+    }
+
+    private void handleEditFreeTextQuestion(EditQuestionRequest request, Question question) throws EntityInvalidArgumentException {
+        if (request.selectMin() != null ||  request.selectMax() != null || request.possibleChoices() != null) {
+            throw new EntityInvalidArgumentException("EditQuestionFTRequest", "For free text question request can contain only text field.");
+        }
+        question.setText(request.text());
+    }
+
+    private void handleEditMultipleChoiceQuestion(EditQuestionRequest request, Question question) throws EntityInvalidArgumentException {
+        if (request.possibleChoices() == null || request.possibleChoices().size() < 2) {
+            throw new EntityInvalidArgumentException("EditQuestionMCChoicesSize", "For multiple choice questions, at least 2 possible choices must be provided.");
+        }
+        if (request.selectMin() == null || request.selectMax() == null) {
+            throw new EntityInvalidArgumentException("EditQuestionMCSelectMinMaxNull", "For multiple choice questions, selectMin and selectMax values must be provided.");
+        }
+        if (request.selectMin() < 1 || request.selectMin() > request.selectMax()) {
+            throw new EntityInvalidArgumentException("EditQuestionMCSelectMin", "For multiple choice questions, selectMin must be greater than 0 and less than or equal to selectMax.");
+        }
+        if (request.selectMax() > request.possibleChoices().size()) {
+            throw new EntityInvalidArgumentException("EditQuestionMCSelectMax", "For multiple choice questions, selectMax must be less than or equal to the number of possible choices.");
+        }
+
+        // Check for duplicate possible choice texts and UUIDs in the request
+        Set<UUID> possibleChoiceIds = getPossibleChoiceUuidsFromRequest(request);
+
+        // Check that all edited possible choices in request belong to the question
+        Set<UUID> possibleChoiceIdsDB = question.getAllPossibleChoices()
+                .stream()
+                .map(PossibleChoice::getUuid)
+                .collect(Collectors.toSet());
+        for (UUID uuid: possibleChoiceIds) {
+            if (!possibleChoiceIdsDB.contains(uuid)) {
+                throw new EntityInvalidArgumentException("EditQuestionMCChoiceUUIDNotInQuestion", "Possible choice UUID: " + uuid + "does not belong to question with id=" + question.getId());
+            }
+        }
+
+        question.setText(request.text());
+        question.setSelectMin(request.selectMin());
+        question.setSelectMax(request.selectMax());
+        possibleChoiceService.editPossibleChoices(question, request.possibleChoices());
+    }
+
+    private static @NonNull Set<UUID> getPossibleChoiceUuidsFromRequest(EditQuestionRequest request) throws EntityInvalidArgumentException {
+        Set<UUID> possibleChoiceIds = new HashSet<>();
+        Set<String> possibleChoiceTexts = new HashSet<>();
+        for (EditPossibleChoiceRequest choice : request.possibleChoices()) {
+            if (choice.text() == null || choice.text().isBlank()) {
+                throw new EntityInvalidArgumentException("EditQuestionMCChoiceTextBlank", "Possible choice text cannot be blank.");
+            }
+            if (choice.uuid() != null) {
+                if (possibleChoiceIds.contains(choice.uuid())) {
+                    throw new EntityInvalidArgumentException("EditQuestionMCChoiceUUIDDuplicate", "Duplicate possible choice UUID: " + choice.uuid());
+                } else {
+                    possibleChoiceIds.add(choice.uuid());
+                }
+            }
+            if (possibleChoiceTexts.contains(choice.text())) {
+                throw new EntityInvalidArgumentException("EditQuestionMCChoiceTextDuplicate", "Duplicate possible choice text: " + choice.text() + " in request.");
+            } else {
+                possibleChoiceTexts.add(choice.text());
+            }
+        }
+        return possibleChoiceIds;
     }
 
     @Override
