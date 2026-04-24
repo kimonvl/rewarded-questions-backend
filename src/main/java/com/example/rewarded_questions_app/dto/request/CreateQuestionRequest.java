@@ -25,6 +25,7 @@ public record CreateQuestionRequest(
         Long selectMax,
 
         @Valid
+        @NotNull
         List<CreatePossibleChoiceRequest> possibleChoices
 ) {
 }
