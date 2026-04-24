@@ -57,6 +57,7 @@ public class SecurityConfiguration {
                                 .requestMatchers(HttpMethod.PATCH, "/api/v1/questionnaires/{id}/questions/order").hasAuthority(CapabilityCodes.EDIT_QUESTION.name())
                                 .requestMatchers(HttpMethod.PATCH, "/api/v1/questionnaires/{id}").hasAuthority(CapabilityCodes.EDIT_QUESTIONNAIRE.name())
                                 .requestMatchers(HttpMethod.DELETE, "/api/v1/questionnaires/{id}").hasAuthority(CapabilityCodes.DELETE_QUESTIONNAIRE.name())
+                                .requestMatchers(HttpMethod.PUT, "/api/v1/questions/{id}").hasAuthority(CapabilityCodes.EDIT_QUESTION.name())
 //                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/authenticate").permitAll()
 //                        .requestMatchers(HttpMethod.POST, "/api/v1/teachers").permitAll()
 //                        .requestMatchers(HttpMethod.POST, "/api/v1/teachers/{uuid}/*").permitAll()
