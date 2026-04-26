@@ -52,4 +52,22 @@ public class QuestionRestController {
                 HttpStatus.OK
         );
     }
+
+    @DeleteMapping("{id}")
+    public ResponseEntity<@NonNull GenericResponse<?>> deleteQuestion(
+            Principal principal,
+            @PathVariable UUID id
+    ) throws EntityInvalidArgumentException, EntityNotFoundException {
+        questionService.deleteQuestion(id, principal.getName());
+        //questionService.deleteQuestion(id, principal.getName());
+        return new ResponseEntity<>(
+                new GenericResponse<>(
+                        null,
+                        "DeleteQuestionSucceeded",
+                        "Question deleted successfully",
+                        true
+                ),
+                HttpStatus.OK
+        );
+    }
 }
