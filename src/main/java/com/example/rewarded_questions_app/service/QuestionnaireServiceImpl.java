@@ -7,6 +7,7 @@ import com.example.rewarded_questions_app.dto.response.QuestionnaireWithQuestion
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
 import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
 import com.example.rewarded_questions_app.mapper.QuestionnaireMapper;
+import com.example.rewarded_questions_app.model.questionnaire.PossibleChoice;
 import com.example.rewarded_questions_app.model.questionnaire.Question;
 import com.example.rewarded_questions_app.model.questionnaire.Questionnaire;
 import com.example.rewarded_questions_app.model.user.User;
@@ -115,6 +116,9 @@ public class QuestionnaireServiceImpl implements QuestionnaireService{
 
             for (Question question : questionnaire.getAllQuestions()) {
                 question.softDelete();
+                for (PossibleChoice choice : question.getAllPossibleChoices()) {
+                    choice.softDelete();
+                }
             }
             questionnaire.softDelete();
             questionnaireRepository.save(questionnaire);

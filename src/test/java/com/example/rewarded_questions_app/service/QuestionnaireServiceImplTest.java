@@ -6,6 +6,7 @@ import com.example.rewarded_questions_app.dto.response.QuestionnaireDetailsDTO;
 import com.example.rewarded_questions_app.dto.response.QuestionnaireWithQuestionsDTO;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
 import com.example.rewarded_questions_app.exceptions.EntityNotFoundException;
+import com.example.rewarded_questions_app.model.questionnaire.PossibleChoice;
 import com.example.rewarded_questions_app.model.questionnaire.Question;
 import com.example.rewarded_questions_app.model.questionnaire.Questionnaire;
 import com.example.rewarded_questions_app.model.user.Capability;
@@ -256,6 +257,21 @@ class QuestionnaireServiceImplTest {
 
     @Test
     void deleteQuestionnaireSuccess() throws EntityInvalidArgumentException, EntityNotFoundException {
+        Question existingQuestion = questionnaire.getAllQuestions().iterator().next();
+
+        PossibleChoice firstChoice = new PossibleChoice();
+        firstChoice.setText("First choice");
+        firstChoice.setOrder(0L);
+        existingQuestion.addPossibleChoice(firstChoice);
+
+        PossibleChoice secondChoice = new PossibleChoice();
+        secondChoice.setText("Second choice");
+        secondChoice.setOrder(1L);
+        existingQuestion.addPossibleChoice(secondChoice);
+
+        entityManager.persist(firstChoice);
+        entityManager.persist(secondChoice);
+
         java.util.UUID deletedUuid = questionnaireService.deleteQuestionnaire(questionnaire.getUuid(), owner.getEmail());
         entityManager.flush();
         entityManager.clear();
@@ -272,6 +288,12 @@ class QuestionnaireServiceImplTest {
                 )
                 .setParameter("uuid", deletedUuid)
                 .getResultList();
+        var deletedPossibleChoices = entityManager.createQuery(
+                        "select pc from PossibleChoice pc where pc.question.questionnaire.uuid = :uuid",
+                        PossibleChoice.class
+                )
+                .setParameter("uuid", deletedUuid)
+                .getResultList();
 
         assertThat(deletedQuestionnaire.isDeleted()).isTrue();
         assertThat(deletedQuestionnaire.getDeletedAt()).isNotNull();
@@ -282,6 +304,13 @@ class QuestionnaireServiceImplTest {
                 .allSatisfy(question -> {
                     assertThat(question.isDeleted()).isTrue();
                     assertThat(question.getDeletedAt()).isNotNull();
+                });
+
+        assertThat(deletedPossibleChoices).hasSize(2);
+        assertThat(deletedPossibleChoices)
+                .allSatisfy(possibleChoice -> {
+                    assertThat(possibleChoice.isDeleted()).isTrue();
+                    assertThat(possibleChoice.getDeletedAt()).isNotNull();
                 });
     }
 }
