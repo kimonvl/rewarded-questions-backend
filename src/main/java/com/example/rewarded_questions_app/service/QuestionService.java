@@ -14,6 +14,7 @@ public interface QuestionService {
     QuestionDTO createQuestion(CreateQuestionRequest request, UUID questionnaireId, String email) throws EntityNotFoundException, EntityInvalidArgumentException;
     List<QuestionDTO> reorderQuestions(ReorderQuestionsRequest request, UUID questionnaireId, String email) throws EntityInvalidArgumentException, EntityNotFoundException;
     QuestionDTO editQuestion(EditQuestionRequest request, UUID questionId, String email) throws EntityNotFoundException, EntityInvalidArgumentException;
+    void deleteQuestion(UUID questionId, String email) throws EntityNotFoundException, EntityInvalidArgumentException;
 
     boolean existsByTextAndQuestionnaireId(String text, Long questionnaireId);
 }

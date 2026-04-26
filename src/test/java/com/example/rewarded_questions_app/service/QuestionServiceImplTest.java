@@ -29,6 +29,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(properties = {
@@ -38,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Transactional
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@WithMockUser(authorities = {"CREATE_QUESTION", "EDIT_QUESTION"})
+@WithMockUser(authorities = {"CREATE_QUESTION", "EDIT_QUESTION", "DELETE_QUESTION"})
 class QuestionServiceImplTest {
     @Autowired
     private QuestionService questionService;
@@ -414,7 +415,7 @@ class QuestionServiceImplTest {
         entityManager.flush();
         entityManager.clear();
 
-        Question savedQuestion = questionRepository.findByUuidAndDeletedFalse(firstQuestionUuid).orElseThrow();
+        Question savedQuestion = questionRepository.findWithChoicesByUuidAndDeletedFalse(firstQuestionUuid).orElseThrow();
         assertEquals("Edited free text question", savedQuestion.getText());
         assertTrue(savedQuestion.getIsFreeText());
         assertEquals(0L, savedQuestion.getSelectMin());
@@ -563,7 +564,7 @@ class QuestionServiceImplTest {
         entityManager.flush();
         entityManager.clear();
 
-        Question savedQuestion = questionRepository.findByUuidAndDeletedFalse(multipleChoiceQuestionUuid).orElseThrow();
+        Question savedQuestion = questionRepository.findWithChoicesByUuidAndDeletedFalse(multipleChoiceQuestionUuid).orElseThrow();
         List<PossibleChoice> savedChoices = savedQuestion.getAllPossibleChoices().stream()
                 .sorted(Comparator.comparing(PossibleChoice::getOrder))
                 .toList();
@@ -580,6 +581,56 @@ class QuestionServiceImplTest {
         assertEquals(List.of(0L, 1L, 2L),
                 savedChoices.stream().map(PossibleChoice::getOrder).toList());
         assertFalse(savedChoices.stream().map(PossibleChoice::getUuid).toList().contains(thirdChoiceUuid));
+    }
+
+    @Test
+    void deleteQuestionUserNotFound() {
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> questionService.deleteQuestion(firstQuestionUuid, "missing@email.com"));
+        assertEquals("DeleteQuestionUserNotFound", exception.getCode());
+    }
+
+    @Test
+    void deleteQuestionQuestionNotFound() {
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> questionService.deleteQuestion(UUID.randomUUID(), owner.getEmail()));
+        assertEquals("DeleteQuestionQuestionNotFound", exception.getCode());
+    }
+
+    @Test
+    void deleteQuestionUserNotOwner() {
+        EntityInvalidArgumentException exception = assertThrows(EntityInvalidArgumentException.class,
+                () -> questionService.deleteQuestion(firstQuestionUuid, otherOwner.getEmail()));
+        assertEquals("DeleteQuestionUserQuestionInvalidArgument", exception.getCode());
+    }
+
+    @Test
+    void deleteQuestionSuccess() throws EntityInvalidArgumentException, EntityNotFoundException {
+        questionService.deleteQuestion(multipleChoiceQuestionUuid, owner.getEmail());
+
+        entityManager.flush();
+        entityManager.clear();
+
+        Question deletedQuestion = entityManager.createQuery(
+                        "select q from Question q where q.uuid = :uuid",
+                        Question.class
+                )
+                .setParameter("uuid", multipleChoiceQuestionUuid)
+                .getSingleResult();
+        List<PossibleChoice> deletedChoices = entityManager.createQuery(
+                        "select pc from PossibleChoice pc where pc.question.uuid = :questionUuid",
+                        PossibleChoice.class
+                )
+                .setParameter("questionUuid", multipleChoiceQuestionUuid)
+                .getResultList();
+
+        assertTrue(deletedQuestion.isDeleted());
+        assertNotNull(deletedQuestion.getDeletedAt());
+        assertThat(questionRepository.findWithChoicesByUuidAndDeletedFalse(multipleChoiceQuestionUuid)).isEmpty();
+
+        assertEquals(3, deletedChoices.size());
+        assertTrue(deletedChoices.stream().allMatch(PossibleChoice::isDeleted));
+        assertTrue(deletedChoices.stream().allMatch(choice -> choice.getDeletedAt() != null));
     }
 
     private static CreateQuestionRequest freeTextRequest(String text) {

@@ -127,7 +127,7 @@ public class QuestionServiceImpl implements QuestionService{
         try {
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new EntityNotFoundException("EditQuestionUser", "User with email=" + email + " not found"));
-            Question question = questionRepository.findByUuidAndDeletedFalse(questionId)
+            Question question = questionRepository.findWithQuestionnaireChoicesByUuidAndDeletedFalse(questionId)
                     .orElseThrow(() -> new EntityNotFoundException("EditQuestionQuestion", "Question with id=" + questionId + " not found"));
             if (!question.getQuestionnaire().getUser().equals(user)) {
                 throw new EntityInvalidArgumentException("EditQuestionQuestionUser", "Question with id=" + questionId + " does not belong to user with email=" + email);
@@ -152,6 +152,31 @@ public class QuestionServiceImpl implements QuestionService{
             return result;
         } catch (EntityNotFoundException | EntityInvalidArgumentException e) {
             log.warn("Edit question failed, by user with email={} for question with id={}. Message={}", email, questionId, e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    @PreAuthorize("hasAuthority('DELETE_QUESTION')")
+    @Transactional(rollbackFor = {EntityNotFoundException.class})
+    public void deleteQuestion(UUID questionId, String email) throws EntityNotFoundException, EntityInvalidArgumentException {
+        try {
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() ->  new EntityNotFoundException("DeleteQuestionUser", "User with email=" + email + " not found"));
+            Question question = questionRepository.findWithQuestionnaireChoicesByUuidAndDeletedFalse(questionId)
+                    .orElseThrow(() -> new EntityNotFoundException("DeleteQuestionQuestion", "Question with id=" + questionId + " not found"));
+            if (!question.getQuestionnaire().getUser().equals(user)) {
+                throw new EntityInvalidArgumentException("DeleteQuestionUserQuestion", "User with email=" + email + " is not the owner of question with id=" + questionId);
+            }
+
+            for (PossibleChoice possibleChoice : question.getAllPossibleChoices()) {
+                possibleChoice.softDelete();
+            }
+            question.softDelete();
+
+            log.info("Delete question succeeded by user with email={} for question with id={}", email, questionId);
+        } catch (EntityNotFoundException | EntityInvalidArgumentException e) {
+            log.warn("Delete question failed, by user with email={} for question with id={}", email, questionId);
             throw e;
         }
     }
