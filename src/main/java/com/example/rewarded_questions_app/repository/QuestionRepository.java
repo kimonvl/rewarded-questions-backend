@@ -9,7 +9,13 @@ import java.util.UUID;
 
 public interface QuestionRepository extends JpaRepository<Question, Long> {
     @EntityGraph(attributePaths = {"possibleChoices"})
-    Optional<Question> findByUuidAndDeletedFalse(UUID uuid);
+    Optional<Question> findWithChoicesByUuidAndDeletedFalse(UUID uuid);
+
+    @EntityGraph(attributePaths = {
+            "possibleChoices",
+            "questionnaire"
+    })
+    Optional<Question> findWithQuestionnaireChoicesByUuidAndDeletedFalse(UUID uuid);
 
     boolean existsByTextAndQuestionnaireIdAndDeletedFalse(String text, Long questionnaireId);
 }
