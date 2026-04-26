@@ -58,6 +58,7 @@ public class SecurityConfiguration {
                                 .requestMatchers(HttpMethod.PATCH, "/api/v1/questionnaires/{id}").hasAuthority(CapabilityCodes.EDIT_QUESTIONNAIRE.name())
                                 .requestMatchers(HttpMethod.DELETE, "/api/v1/questionnaires/{id}").hasAuthority(CapabilityCodes.DELETE_QUESTIONNAIRE.name())
                                 .requestMatchers(HttpMethod.PUT, "/api/v1/questions/{id}").hasAuthority(CapabilityCodes.EDIT_QUESTION.name())
+                                .requestMatchers(HttpMethod.DELETE, "/api/v1/questions/{id}").hasAuthority(CapabilityCodes.DELETE_QUESTION.name())
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
