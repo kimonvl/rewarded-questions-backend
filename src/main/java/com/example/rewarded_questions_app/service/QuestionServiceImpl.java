@@ -16,6 +16,8 @@ import com.example.rewarded_questions_app.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -177,6 +179,23 @@ public class QuestionServiceImpl implements QuestionService{
             log.info("Delete question succeeded by user with email={} for question with id={}", email, questionId);
         } catch (EntityNotFoundException | EntityInvalidArgumentException e) {
             log.warn("Delete question failed, by user with email={} for question with id={}", email, questionId);
+            throw e;
+        }
+    }
+
+    @Override
+    public Page<QuestionDTO> getPaginatedQuestionsForQuestionnaire(Pageable pageable, UUID questionnaireId) throws EntityNotFoundException {
+        try {
+            Questionnaire questionnaire = questionnaireRepository.findByUuidAndDeletedFalse(questionnaireId)
+                    .orElseThrow(() -> new EntityNotFoundException("GetPaginatedQuestionsQuestionnaire", "Questionnaire with id=" + questionnaireId + " not found"));
+
+            Page<QuestionDTO> result =  questionRepository.findAllWithChoicesByQuestionnaireIdAndDeletedFalseOrderByOrderAsc(questionnaire.getId(), pageable)
+                    .map(questionMapper::toDto);
+
+            log.info("Get paginated questions for questionnaire with id={} succeeded", questionnaireId);
+            return result;
+        } catch (EntityNotFoundException e) {
+            log.warn("Get paginated questions for questionnaire with id={} failed. Message={}", questionnaireId, e.getMessage());
             throw e;
         }
     }
