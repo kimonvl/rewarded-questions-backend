@@ -22,6 +22,8 @@ public interface QuestionnaireRepository extends JpaRepository<Questionnaire, Lo
             "questions.possibleChoices"
     })
     Optional<Questionnaire> findWithQuestionsByUuidAndDeletedFalse(UUID uuid);
+
+    @EntityGraph(attributePaths = {"user"})
     Optional<Questionnaire> findByUuidAndDeletedFalse(UUID uuid);
     Optional<Questionnaire> findByUserIdAndTitleAndDeletedFalse(Long userId, String title);
 

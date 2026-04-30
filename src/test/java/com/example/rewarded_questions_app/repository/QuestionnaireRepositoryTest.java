@@ -1,11 +1,13 @@
 package com.example.rewarded_questions_app.repository;
 
+import com.example.rewarded_questions_app.dto.request.QuestionnaireFilters;
 import com.example.rewarded_questions_app.model.questionnaire.Questionnaire;
 import com.example.rewarded_questions_app.model.questionnaire.Question;
 import com.example.rewarded_questions_app.model.questionnaire.PossibleChoice;
 import com.example.rewarded_questions_app.model.user.Capability;
 import com.example.rewarded_questions_app.model.user.Role;
 import com.example.rewarded_questions_app.model.user.User;
+import com.example.rewarded_questions_app.repository.specification.QuestionnaireSpecification;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceUnitUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,8 +15,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,6 +37,7 @@ class QuestionnaireRepositoryTest {
     private EntityManager entityManager;
 
     private User owner;
+    private User anotherOwner;
     private UUID questionnaireUuid;
     private UUID deletedQuestionnaireUuid;
 
@@ -47,6 +54,12 @@ class QuestionnaireRepositoryTest {
         owner.setPassword("password");
         owner.setOrganization("Example Org");
         adminRole.addUser(owner);
+
+        anotherOwner = new User();
+        anotherOwner.setEmail("another-owner@example.com");
+        anotherOwner.setPassword("password");
+        anotherOwner.setOrganization("Another Business");
+        adminRole.addUser(anotherOwner);
 
         Questionnaire questionnaire = new Questionnaire();
         questionnaire.setTitle("Sample Questionnaire");
@@ -84,8 +97,11 @@ class QuestionnaireRepositoryTest {
 
         entityManager.persist(adminRole);
         entityManager.persist(owner);
+        entityManager.persist(anotherOwner);
 
         questionnaireRepository.save(questionnaire);
+        questionnaireRepository.save(createQuestionnaire("Customer Feedback", "Customer feedback description", owner));
+        questionnaireRepository.save(createQuestionnaire("Employee Survey", "Employee survey description", anotherOwner));
         questionnaireRepository.save(deletedQuestionnaire);
         entityManager.flush();
         entityManager.clear();
@@ -135,6 +151,7 @@ class QuestionnaireRepositoryTest {
         assertThat(foundQuestionnaire.getUuid()).isEqualTo(questionnaireUuid);
         assertThat(foundQuestionnaire.getTitle()).isEqualTo("Sample Questionnaire");
         assertThat(foundQuestionnaire.getDescription()).isEqualTo("Sample Questionnaire description");
+        assertThat(persistenceUnitUtil.isLoaded(foundQuestionnaire, "user")).isTrue();
         assertThat(foundQuestionnaire.getUser()).isEqualTo(owner);
         assertThat(persistenceUnitUtil.isLoaded(foundQuestionnaire, "questions")).isFalse();
     }
@@ -142,6 +159,86 @@ class QuestionnaireRepositoryTest {
     @Test
     void findByUuidAndDeletedFalseDeletedQuestionnaireReturnsEmpty() {
         assertThat(questionnaireRepository.findByUuidAndDeletedFalse(deletedQuestionnaireUuid)).isEmpty();
+    }
+
+    @Test
+    void findAllFiltersByTitleAndLoadsUsers() {
+        QuestionnaireFilters filters = new QuestionnaireFilters();
+        filters.setTitle("customer");
+        PersistenceUnitUtil persistenceUnitUtil = entityManager.getEntityManagerFactory().getPersistenceUnitUtil();
+
+        Page<Questionnaire> page = questionnaireRepository.findAll(
+                QuestionnaireSpecification.build(filters),
+                PageRequest.of(0, 10, Sort.by("title"))
+        );
+
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getContent())
+                .singleElement()
+                .satisfies(questionnaire -> {
+                    assertThat(questionnaire.getTitle()).isEqualTo("Customer Feedback");
+                    assertThat(questionnaire.isDeleted()).isFalse();
+                    assertThat(persistenceUnitUtil.isLoaded(questionnaire, "user")).isTrue();
+                    assertThat(questionnaire.getUser().getOrganization()).isEqualTo("Example Org");
+                });
+    }
+
+    @Test
+    void findAllFiltersByBusinessNameAndLoadsUsers() {
+        QuestionnaireFilters filters = new QuestionnaireFilters();
+        filters.setBusinessName("another business");
+        PersistenceUnitUtil persistenceUnitUtil = entityManager.getEntityManagerFactory().getPersistenceUnitUtil();
+
+        Page<Questionnaire> page = questionnaireRepository.findAll(
+                QuestionnaireSpecification.build(filters),
+                PageRequest.of(0, 10, Sort.by("title"))
+        );
+
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getContent())
+                .singleElement()
+                .satisfies(questionnaire -> {
+                    assertThat(questionnaire.getTitle()).isEqualTo("Employee Survey");
+                    assertThat(questionnaire.isDeleted()).isFalse();
+                    assertThat(persistenceUnitUtil.isLoaded(questionnaire, "user")).isTrue();
+                    assertThat(questionnaire.getUser()).isEqualTo(anotherOwner);
+                });
+    }
+
+    @Test
+    void findAllPaginatesLoadsUsersAndExcludesDeletedQuestionnaires() {
+        PersistenceUnitUtil persistenceUnitUtil = entityManager.getEntityManagerFactory().getPersistenceUnitUtil();
+
+        Page<Questionnaire> firstPage = questionnaireRepository.findAll(
+                QuestionnaireSpecification.build(null),
+                PageRequest.of(0, 2, Sort.by("title"))
+        );
+        Page<Questionnaire> secondPage = questionnaireRepository.findAll(
+                QuestionnaireSpecification.build(null),
+                PageRequest.of(1, 2, Sort.by("title"))
+        );
+
+        assertThat(firstPage.getTotalElements()).isEqualTo(3);
+        assertThat(firstPage.getTotalPages()).isEqualTo(2);
+        assertThat(firstPage.getContent())
+                .extracting(Questionnaire::getTitle)
+                .containsExactly("Customer Feedback", "Employee Survey");
+        assertThat(secondPage.getContent())
+                .extracting(Questionnaire::getTitle)
+                .containsExactly("Sample Questionnaire");
+
+        List<Questionnaire> allLoadedQuestionnaires = List.of(
+                firstPage.getContent().get(0),
+                firstPage.getContent().get(1),
+                secondPage.getContent().get(0)
+        );
+
+        assertThat(allLoadedQuestionnaires)
+                .allSatisfy(questionnaire -> {
+                    assertThat(questionnaire.isDeleted()).isFalse();
+                    assertThat(questionnaire.getTitle()).isNotEqualTo("Deleted Questionnaire");
+                    assertThat(persistenceUnitUtil.isLoaded(questionnaire, "user")).isTrue();
+                });
     }
 
     @Test
@@ -177,6 +274,14 @@ class QuestionnaireRepositoryTest {
     @Test
     void findWithQuestionsByUuidAndDeletedFalseDeletedQuestionnaireReturnsEmpty() {
         assertThat(questionnaireRepository.findWithQuestionsByUuidAndDeletedFalse(deletedQuestionnaireUuid)).isEmpty();
+    }
+
+    private Questionnaire createQuestionnaire(String title, String description, User user) {
+        Questionnaire questionnaire = new Questionnaire();
+        questionnaire.setTitle(title);
+        questionnaire.setDescription(description);
+        questionnaire.setUser(user);
+        return questionnaire;
     }
 
 }
