@@ -38,7 +38,8 @@ public class QuestionnaireMapper {
         return new QuestionnaireDetailsDTO(
                 questionnaire.getUuid(),
                 questionnaire.getTitle(),
-                questionnaire.getDescription()
+                questionnaire.getDescription(),
+                questionnaire.getUser().getOrganization()
         );
     }
 }
