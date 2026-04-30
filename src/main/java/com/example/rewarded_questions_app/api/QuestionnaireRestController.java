@@ -58,7 +58,7 @@ public class QuestionnaireRestController {
         );
     }
 
-    @GetMapping("{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<@NonNull GenericResponse<QuestionnaireDetailsDTO>> getQuestionnaireDetails(
             @PathVariable UUID id
     ) throws EntityNotFoundException {
@@ -72,6 +72,23 @@ public class QuestionnaireRestController {
                 HttpStatus.OK
         );
     }
+
+    @GetMapping("{id}/questions")
+    public ResponseEntity<@NonNull GenericResponse<Page<QuestionDTO>>> getQuestionnaireQuestions(
+            @PageableDefault(page = 0, size = 10) Pageable pageable,
+            @PathVariable UUID id
+    ) throws EntityNotFoundException {
+        return new ResponseEntity<>(
+                new GenericResponse<>(
+                        questionService.getPaginatedQuestionsForQuestionnaire(pageable, id),
+                        "GetQuestionnaireQuestionsSucceeded",
+                        "Questionnaire's questions retrieved successfully",
+                        true
+                ),
+                HttpStatus.OK
+        );
+    }
+
 
     @PostMapping()
     public ResponseEntity<@NonNull GenericResponse<QuestionnaireWithQuestionsDTO>> createQuestionnaire(
