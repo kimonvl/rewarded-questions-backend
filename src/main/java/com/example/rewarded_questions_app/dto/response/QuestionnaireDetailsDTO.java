@@ -5,6 +5,7 @@ import java.util.UUID;
 public record QuestionnaireDetailsDTO(
         UUID uuid,
         String title,
-        String description
+        String description,
+        String businessName
 ) {
 }
