@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -631,6 +633,47 @@ class QuestionServiceImplTest {
         assertEquals(3, deletedChoices.size());
         assertTrue(deletedChoices.stream().allMatch(PossibleChoice::isDeleted));
         assertTrue(deletedChoices.stream().allMatch(choice -> choice.getDeletedAt() != null));
+    }
+
+    @Test
+    void getPaginatedQuestionsForQuestionnaireQuestionnaireNotFound() {
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> questionService.getPaginatedQuestionsForQuestionnaire(PageRequest.of(0, 10), UUID.randomUUID()));
+
+        assertEquals("GetPaginatedQuestionsQuestionnaireNotFound", exception.getCode());
+    }
+
+    @Test
+    void getPaginatedQuestionsForQuestionnaireSuccess() throws EntityNotFoundException {
+        Page<QuestionDTO> result = questionService.getPaginatedQuestionsForQuestionnaire(
+                PageRequest.of(0, 2),
+                questionnaire.getUuid()
+        );
+
+        assertEquals(4, result.getTotalElements());
+        assertEquals(2, result.getTotalPages());
+        assertEquals(2, result.getContent().size());
+        assertEquals(List.of(firstQuestionUuid, secondQuestionUuid),
+                result.getContent().stream().map(QuestionDTO::uuid).toList());
+        assertEquals(List.of(0L, 1L),
+                result.getContent().stream().map(QuestionDTO::order).toList());
+        assertTrue(result.getContent().stream().allMatch(question -> question.possibleChoices().isEmpty()));
+
+        Page<QuestionDTO> secondPage = questionService.getPaginatedQuestionsForQuestionnaire(
+                PageRequest.of(1, 2),
+                questionnaire.getUuid()
+        );
+        QuestionDTO multipleChoiceQuestion = secondPage.getContent().get(1);
+
+        assertEquals(List.of(thirdQuestionUuid, multipleChoiceQuestionUuid),
+                secondPage.getContent().stream().map(QuestionDTO::uuid).toList());
+        assertEquals(multipleChoiceQuestionUuid, multipleChoiceQuestion.uuid());
+        assertEquals("Favorite color?", multipleChoiceQuestion.text());
+        assertFalse(multipleChoiceQuestion.isFreeText());
+        assertThat(multipleChoiceQuestion.possibleChoices())
+                .hasSize(3)
+                .extracting(choice -> choice.text())
+                .containsExactlyInAnyOrder("Red", "Green", "Blue");
     }
 
     private static CreateQuestionRequest freeTextRequest(String text) {
