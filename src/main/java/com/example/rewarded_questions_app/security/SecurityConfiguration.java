@@ -61,6 +61,7 @@ public class SecurityConfiguration {
                                 .requestMatchers(HttpMethod.DELETE, "/api/v1/questions/{id}").hasAuthority(CapabilityCodes.DELETE_QUESTION.name())
                                 .requestMatchers(HttpMethod.GET, "/api/v1/questionnaires").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/questionnaires/{id}").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/questionnaires/{id}/questions").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
