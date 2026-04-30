@@ -18,7 +18,7 @@ import java.util.UUID;
 @Table(
         name = "questions",
         indexes = {
-                @Index(name = "idx_questions_questionnaires", columnList = "questionnaire_id"),
+                @Index(name = "idx_questions_questionnaires", columnList = "questionnaire_id, question_order"),
         }
 )
 public class Question extends AbstractEntity {
