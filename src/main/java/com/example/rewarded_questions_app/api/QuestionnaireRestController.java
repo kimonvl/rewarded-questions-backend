@@ -4,6 +4,7 @@ import com.example.rewarded_questions_app.dto.request.CreateQuestionRequest;
 import com.example.rewarded_questions_app.dto.request.CreateQuestionnaireRequest;
 import com.example.rewarded_questions_app.dto.GenericResponse;
 import com.example.rewarded_questions_app.dto.request.EditQuestionnaireDetailsRequest;
+import com.example.rewarded_questions_app.dto.request.QuestionnaireFilters;
 import com.example.rewarded_questions_app.dto.request.ReorderQuestionsRequest;
 import com.example.rewarded_questions_app.dto.response.QuestionDTO;
 import com.example.rewarded_questions_app.dto.response.QuestionnaireDetailsDTO;
@@ -18,6 +19,9 @@ import com.example.rewarded_questions_app.validator.EditQuestionnaireDetailsRequ
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -37,6 +41,22 @@ public class QuestionnaireRestController {
 
     private final CreateQuestionRequestValidator createQuestionRequestValidator;
     private final EditQuestionnaireDetailsRequestValidator editQuestionnaireDetailsRequestValidator;
+
+    @GetMapping()
+    public ResponseEntity<@NonNull GenericResponse<Page<QuestionnaireDetailsDTO>>> getFilteredAndPaginatedQuestionnaires(
+            @PageableDefault(page = 0, size = 10) Pageable pageable,
+            @ModelAttribute QuestionnaireFilters filters
+    ) {
+        return new ResponseEntity<>(
+                new GenericResponse<>(
+                        questionnaireService.getFilteredAndPaginatedQuestionnaires(pageable, filters),
+                        "GetQuestionnairesSucceeded",
+                        "Questionnaires retrieved successfully",
+                        true
+                ),
+                HttpStatus.OK
+        );
+    }
 
     @PostMapping()
     public ResponseEntity<@NonNull GenericResponse<QuestionnaireWithQuestionsDTO>> createQuestionnaire(
