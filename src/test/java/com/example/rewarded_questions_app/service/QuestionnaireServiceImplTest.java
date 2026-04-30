@@ -2,6 +2,7 @@ package com.example.rewarded_questions_app.service;
 
 import com.example.rewarded_questions_app.dto.request.CreateQuestionnaireRequest;
 import com.example.rewarded_questions_app.dto.request.EditQuestionnaireDetailsRequest;
+import com.example.rewarded_questions_app.dto.request.QuestionnaireFilters;
 import com.example.rewarded_questions_app.dto.response.QuestionnaireDetailsDTO;
 import com.example.rewarded_questions_app.dto.response.QuestionnaireWithQuestionsDTO;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
@@ -19,6 +20,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -312,5 +316,161 @@ class QuestionnaireServiceImplTest {
                     assertThat(possibleChoice.isDeleted()).isTrue();
                     assertThat(possibleChoice.getDeletedAt()).isNotNull();
                 });
+    }
+
+    @Test
+    void getFilteredAndPaginatedQuestionnairesSize() {
+        persistQuestionnaire("Alpha Questionnaire", "Acme Ltd");
+        persistQuestionnaire("Beta Questionnaire", "Beta Ltd");
+        persistQuestionnaire("Gamma Questionnaire", "Gamma Ltd");
+        persistQuestionnaire("Delta Questionnaire", "Delta Ltd");
+        entityManager.flush();
+
+        Page<QuestionnaireDetailsDTO> sizeTwoPage = questionnaireService.getFilteredAndPaginatedQuestionnaires(
+                PageRequest.of(0, 2, Sort.by("title").ascending()),
+                filters(null, null)
+        );
+        Page<QuestionnaireDetailsDTO> sizeThreePage = questionnaireService.getFilteredAndPaginatedQuestionnaires(
+                PageRequest.of(0, 3, Sort.by("title").ascending()),
+                filters(null, null)
+        );
+
+        assertThat(sizeTwoPage.getContent()).hasSize(2);
+        assertThat(sizeTwoPage.getTotalElements()).isEqualTo(5);
+        assertThat(sizeTwoPage.getTotalPages()).isEqualTo(3);
+
+        assertThat(sizeThreePage.getContent()).hasSize(3);
+        assertThat(sizeThreePage.getTotalElements()).isEqualTo(5);
+        assertThat(sizeThreePage.getTotalPages()).isEqualTo(2);
+    }
+
+    @Test
+    void getFilteredAndPaginatedQuestionnairesPage() {
+        persistQuestionnaire("Alpha Questionnaire", "Acme Ltd");
+        persistQuestionnaire("Beta Questionnaire", "Beta Ltd");
+        persistQuestionnaire("Gamma Questionnaire", "Gamma Ltd");
+        entityManager.flush();
+
+        Page<QuestionnaireDetailsDTO> firstPage = questionnaireService.getFilteredAndPaginatedQuestionnaires(
+                PageRequest.of(0, 2, Sort.by("title").ascending()),
+                filters(null, null)
+        );
+        Page<QuestionnaireDetailsDTO> secondPage = questionnaireService.getFilteredAndPaginatedQuestionnaires(
+                PageRequest.of(1, 2, Sort.by("title").ascending()),
+                filters(null, null)
+        );
+
+        assertThat(titles(firstPage)).containsExactly("Alpha Questionnaire", "Beta Questionnaire");
+        assertThat(firstPage.getNumber()).isEqualTo(0);
+        assertThat(firstPage.hasNext()).isTrue();
+
+        assertThat(titles(secondPage)).containsExactly("Gamma Questionnaire", "Sample Questionnaire");
+        assertThat(secondPage.getNumber()).isEqualTo(1);
+        assertThat(secondPage.hasNext()).isFalse();
+    }
+
+    @Test
+    void getFilteredAndPaginatedQuestionnairesTitle() {
+        persistQuestionnaire("Customer Survey", "Acme Ltd");
+        persistQuestionnaire("Employee Survey", "Beta Ltd");
+        persistQuestionnaire("Customer Feedback", "Gamma Ltd");
+        entityManager.flush();
+
+        Page<QuestionnaireDetailsDTO> customerMatches = questionnaireService.getFilteredAndPaginatedQuestionnaires(
+                PageRequest.of(0, 10, Sort.by("title").ascending()),
+                filters("customer", null)
+        );
+        Page<QuestionnaireDetailsDTO> surveyMatches = questionnaireService.getFilteredAndPaginatedQuestionnaires(
+                PageRequest.of(0, 10, Sort.by("title").ascending()),
+                filters("SURVEY", null)
+        );
+        Page<QuestionnaireDetailsDTO> missingMatches = questionnaireService.getFilteredAndPaginatedQuestionnaires(
+                PageRequest.of(0, 10, Sort.by("title").ascending()),
+                filters("missing", null)
+        );
+
+        assertThat(titles(customerMatches)).containsExactly("Customer Feedback", "Customer Survey");
+        assertThat(titles(surveyMatches)).containsExactly("Customer Survey", "Employee Survey");
+        assertThat(missingMatches.getContent()).isEmpty();
+    }
+
+    @Test
+    void getFilteredAndPaginatedQuestionnairesBusinessName() {
+        persistQuestionnaire("Acme Onboarding", "Acme Ltd");
+        persistQuestionnaire("Acme Retention", "Acme Labs");
+        persistQuestionnaire("Beta Onboarding", "Beta Ltd");
+        entityManager.flush();
+
+        Page<QuestionnaireDetailsDTO> acmeMatches = questionnaireService.getFilteredAndPaginatedQuestionnaires(
+                PageRequest.of(0, 10, Sort.by("title").ascending()),
+                filters(null, "acme")
+        );
+        Page<QuestionnaireDetailsDTO> exampleMatches = questionnaireService.getFilteredAndPaginatedQuestionnaires(
+                PageRequest.of(0, 10, Sort.by("title").ascending()),
+                filters(null, "EXAMPLE")
+        );
+        Page<QuestionnaireDetailsDTO> missingMatches = questionnaireService.getFilteredAndPaginatedQuestionnaires(
+                PageRequest.of(0, 10, Sort.by("title").ascending()),
+                filters(null, "missing")
+        );
+
+        assertThat(titles(acmeMatches)).containsExactly("Acme Onboarding", "Acme Retention");
+        assertThat(titles(exampleMatches)).containsExactly("Sample Questionnaire");
+        assertThat(missingMatches.getContent()).isEmpty();
+    }
+
+    @Test
+    void getFilteredAndPaginatedQuestionnairesBusinessNameTitle() {
+        persistQuestionnaire("Customer Survey", "Acme Ltd");
+        persistQuestionnaire("Customer Feedback", "Beta Ltd");
+        persistQuestionnaire("Employee Survey", "Acme Ltd");
+        entityManager.flush();
+
+        Page<QuestionnaireDetailsDTO> customerAcmeMatches = questionnaireService.getFilteredAndPaginatedQuestionnaires(
+                PageRequest.of(0, 10, Sort.by("title").ascending()),
+                filters("customer", "acme")
+        );
+        Page<QuestionnaireDetailsDTO> surveyAcmeMatches = questionnaireService.getFilteredAndPaginatedQuestionnaires(
+                PageRequest.of(0, 10, Sort.by("title").ascending()),
+                filters("survey", "acme")
+        );
+        Page<QuestionnaireDetailsDTO> sampleAcmeMatches = questionnaireService.getFilteredAndPaginatedQuestionnaires(
+                PageRequest.of(0, 10, Sort.by("title").ascending()),
+                filters("sample", "acme")
+        );
+
+        assertThat(titles(customerAcmeMatches)).containsExactly("Customer Survey");
+        assertThat(titles(surveyAcmeMatches)).containsExactly("Customer Survey", "Employee Survey");
+        assertThat(sampleAcmeMatches.getContent()).isEmpty();
+    }
+
+    private void persistQuestionnaire(String title, String organization) {
+        User user = new User();
+        user.setEmail(title.toLowerCase().replaceAll("[^a-z0-9]", "") + "@example.com");
+        user.setPassword("password");
+        user.setOrganization(organization);
+        owner.getRole().addUser(user);
+
+        Questionnaire newQuestionnaire = new Questionnaire();
+        newQuestionnaire.setTitle(title);
+        newQuestionnaire.setDescription(title + " description");
+        newQuestionnaire.setUser(user);
+
+        entityManager.persist(user);
+        entityManager.persist(newQuestionnaire);
+
+    }
+
+    private QuestionnaireFilters filters(String title, String businessName) {
+        QuestionnaireFilters filters = new QuestionnaireFilters();
+        filters.setTitle(title);
+        filters.setBusinessName(businessName);
+        return filters;
+    }
+
+    private java.util.List<String> titles(Page<QuestionnaireDetailsDTO> page) {
+        return page.getContent().stream()
+                .map(QuestionnaireDetailsDTO::title)
+                .toList();
     }
 }
