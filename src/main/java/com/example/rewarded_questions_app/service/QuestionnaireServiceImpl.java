@@ -45,6 +45,22 @@ public class QuestionnaireServiceImpl implements QuestionnaireService{
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public QuestionnaireDetailsDTO getQuestionnaireDetails(UUID questionnaireId) throws EntityNotFoundException {
+        try {
+            Questionnaire questionnaire = questionnaireRepository.findByUuidAndDeletedFalse(questionnaireId)
+                    .orElseThrow(() -> new EntityNotFoundException("GetQuestionnaireDetailsQuestionnaire", "Questionnaire with id=" + questionnaireId + " not found"));
+
+            QuestionnaireDetailsDTO result = questionnaireMapper.toQuestionnaireDetailsDTO(questionnaire);
+            log.info("Questionnaire with id={} fetched successfully", questionnaireId);
+            return result;
+        } catch (EntityNotFoundException e) {
+            log.warn("Questionnaire details retrieval failed for questionnaire with id={}. Message={}",questionnaireId, e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
     @PreAuthorize("hasAuthority('CREATE_QUESTIONNAIRE')")
     @Transactional(rollbackFor = {EntityNotFoundException.class, EntityInvalidArgumentException.class})
     public QuestionnaireWithQuestionsDTO createQuestionnaire(CreateQuestionnaireRequest request, String email) throws EntityNotFoundException, EntityInvalidArgumentException {

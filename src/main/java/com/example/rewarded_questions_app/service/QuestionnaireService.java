@@ -16,6 +16,7 @@ import java.util.UUID;
 
 public interface QuestionnaireService {
     Page<QuestionnaireDetailsDTO> getFilteredAndPaginatedQuestionnaires(Pageable pageable, QuestionnaireFilters filters);
+    QuestionnaireDetailsDTO getQuestionnaireDetails(UUID questionnaireId) throws EntityNotFoundException;
     QuestionnaireWithQuestionsDTO createQuestionnaire(CreateQuestionnaireRequest request, String email) throws EntityNotFoundException, EntityInvalidArgumentException;
     QuestionnaireDetailsDTO editQuestionnaireDetails(EditQuestionnaireDetailsRequest request, UUID questionnaireId, String email) throws EntityNotFoundException, EntityInvalidArgumentException;
     UUID deleteQuestionnaire(UUID questionnaireId, String email) throws EntityNotFoundException, EntityInvalidArgumentException;
