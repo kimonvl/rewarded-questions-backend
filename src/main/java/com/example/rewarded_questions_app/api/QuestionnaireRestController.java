@@ -58,6 +58,21 @@ public class QuestionnaireRestController {
         );
     }
 
+    @GetMapping("{id}")
+    public ResponseEntity<@NonNull GenericResponse<QuestionnaireDetailsDTO>> getQuestionnaireDetails(
+            @PathVariable UUID id
+    ) throws EntityNotFoundException {
+        return new ResponseEntity<>(
+                new GenericResponse<>(
+                        questionnaireService.getQuestionnaireDetails(id),
+                        "GetQuestionnaireDetailsSucceeded",
+                        "Questionnaire retrieved successfully",
+                        true
+                ),
+                HttpStatus.OK
+        );
+    }
+
     @PostMapping()
     public ResponseEntity<@NonNull GenericResponse<QuestionnaireWithQuestionsDTO>> createQuestionnaire(
             @Valid @RequestBody CreateQuestionnaireRequest req,
