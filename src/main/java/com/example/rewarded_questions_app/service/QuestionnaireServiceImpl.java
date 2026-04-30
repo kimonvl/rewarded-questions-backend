@@ -2,6 +2,7 @@ package com.example.rewarded_questions_app.service;
 
 import com.example.rewarded_questions_app.dto.request.CreateQuestionnaireRequest;
 import com.example.rewarded_questions_app.dto.request.EditQuestionnaireDetailsRequest;
+import com.example.rewarded_questions_app.dto.request.QuestionnaireFilters;
 import com.example.rewarded_questions_app.dto.response.QuestionnaireDetailsDTO;
 import com.example.rewarded_questions_app.dto.response.QuestionnaireWithQuestionsDTO;
 import com.example.rewarded_questions_app.exceptions.EntityInvalidArgumentException;
@@ -14,8 +15,11 @@ import com.example.rewarded_questions_app.model.user.User;
 import com.example.rewarded_questions_app.repository.QuestionRepository;
 import com.example.rewarded_questions_app.repository.QuestionnaireRepository;
 import com.example.rewarded_questions_app.repository.UserRepository;
+import com.example.rewarded_questions_app.repository.specification.QuestionnaireSpecification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +36,13 @@ public class QuestionnaireServiceImpl implements QuestionnaireService{
     private final QuestionnaireRepository questionnaireRepository;
 
     private final QuestionnaireMapper questionnaireMapper;
-    private final QuestionRepository questionRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<QuestionnaireDetailsDTO> getFilteredAndPaginatedQuestionnaires(Pageable pageable, QuestionnaireFilters filters) {
+        return questionnaireRepository.findAll(QuestionnaireSpecification.build(filters), pageable)
+                .map(questionnaireMapper::toQuestionnaireDetailsDTO);
+    }
 
     @Override
     @PreAuthorize("hasAuthority('CREATE_QUESTIONNAIRE')")
