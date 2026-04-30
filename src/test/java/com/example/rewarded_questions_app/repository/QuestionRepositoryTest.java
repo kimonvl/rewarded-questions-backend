@@ -13,8 +13,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -152,5 +155,73 @@ class QuestionRepositoryTest {
         assertThat(foundQuestion.getQuestionnaire().getUuid()).isEqualTo(questionnaire.getUuid());
         assertThat(foundQuestion.getQuestionnaire().getTitle()).isEqualTo("Sample Questionnaire");
         assertThat(foundQuestion.getQuestionnaire().isDeleted()).isFalse();
+    }
+
+    @Test
+    void findAllWithChoicesByQuestionnaireIdAndDeletedFalseOrderByOrderAscReturnsOnlyActiveQuestionsForQuestionnaireWithChoicesOrdered() {
+        User owner = entityManager.getReference(User.class, questionnaire.getUser().getId());
+
+        Questionnaire targetQuestionnaire = new Questionnaire();
+        targetQuestionnaire.setTitle("Target Questionnaire");
+        targetQuestionnaire.setDescription("Target Questionnaire description");
+        targetQuestionnaire.setUser(owner);
+
+        Question secondQuestion = question("Second target question?", 2L, "Second choice");
+        Question firstQuestion = question("First target question?", 0L, "First choice");
+        Question deletedQuestion = question("Deleted target question?", 1L, "Deleted choice");
+        deletedQuestion.softDelete();
+        targetQuestionnaire.addQuestion(secondQuestion);
+        targetQuestionnaire.addQuestion(firstQuestion);
+        targetQuestionnaire.addQuestion(deletedQuestion);
+
+        Questionnaire otherQuestionnaire = new Questionnaire();
+        otherQuestionnaire.setTitle("Other Questionnaire");
+        otherQuestionnaire.setDescription("Other Questionnaire description");
+        otherQuestionnaire.setUser(owner);
+        otherQuestionnaire.addQuestion(question("Other questionnaire question?", 0L, "Other choice"));
+
+        entityManager.persist(targetQuestionnaire);
+        entityManager.persist(otherQuestionnaire);
+        entityManager.flush();
+        entityManager.clear();
+
+        Page<Question> page = questionRepository.findAllWithChoicesByQuestionnaireIdAndDeletedFalseOrderByOrderAsc(
+                targetQuestionnaire.getId(),
+                PageRequest.of(0, 10)
+        );
+        PersistenceUnitUtil persistenceUnitUtil = entityManager.getEntityManagerFactory().getPersistenceUnitUtil();
+        List<Question> questions = page.getContent();
+
+        assertThat(page.getTotalElements()).isEqualTo(2);
+        assertThat(questions)
+                .extracting(Question::getText)
+                .containsExactly("First target question?", "Second target question?");
+        assertThat(questions)
+                .extracting(question -> question.getQuestionnaire().getId())
+                .containsOnly(targetQuestionnaire.getId());
+        assertThat(questions)
+                .extracting(Question::isDeleted)
+                .containsOnly(false);
+        assertThat(questions)
+                .allSatisfy(question -> {
+                    assertThat(persistenceUnitUtil.isLoaded(question, "possibleChoices")).isTrue();
+                    assertThat(question.getAllPossibleChoices())
+                            .hasSize(1)
+                            .allSatisfy(possibleChoice -> assertThat(possibleChoice.isDeleted()).isFalse());
+                });
+    }
+
+    private Question question(String text, Long order, String choiceText) {
+        Question question = new Question();
+        question.setText(text);
+        question.setIsFreeText(false);
+        question.setOrder(order);
+
+        PossibleChoice possibleChoice = new PossibleChoice();
+        possibleChoice.setText(choiceText);
+        possibleChoice.setOrder(0L);
+        question.addPossibleChoice(possibleChoice);
+
+        return question;
     }
 }
